@@ -740,7 +740,7 @@ if __name__ == "__main__":
     import numpy as np
     use_single_cam = True
     if use_single_cam:
-        camera_list = [ Tensor([0, 0, 5]) for _ in range(25) ]
+        camera_list = [ Tensor([0, 0, 5]) ]
     else:
         # camera_list = [ Tensor([0, 0, i]) for i in np.linspace(4.8, 5.2, 25) ]
         camera_list = [ 
@@ -833,7 +833,7 @@ if __name__ == "__main__":
     scale = 1
     start_time = time.time()
     # learning_rate = 0.01
-    learning_rate = 0.01 / 3
+    learning_rate = 1e-2
     tolerance = 8 / 10
 
     # image size
@@ -843,6 +843,7 @@ if __name__ == "__main__":
     start_time = time.time()
     per_cam_iteration_count = 5
     # per_cam_iteration_count = 100
+
     while (grid_res_x <= 64):
         tolerance *= 1.05
         image_target = []
@@ -859,9 +860,11 @@ if __name__ == "__main__":
         )
         
         i = 0
-        loss_camera = [1000] * len(camera_list)
+        loss_camera = [1000] * len(camera_list) 
         average = 100000
-        while sum(loss_camera) < average - tolerance / 2:
+        num_steps = 64
+
+        while i<64: #sum(loss_camera) < average - tolerance / 2:
             average = sum(loss_camera)
             for cam in range(len(camera_list)):
                 loss = 100000
@@ -869,17 +872,19 @@ if __name__ == "__main__":
 
                 prev_loss = loss + 1
                 num = 0
-                while((num < per_cam_iteration_count) and loss < prev_loss):
+                loss = 0
+                optimizer.zero_grad()
+                while ((num < per_cam_iteration_count) and loss < prev_loss):
                     num += 1
                     prev_loss = loss
                     iterations += 1
 
-                    optimizer.zero_grad()
 
                     # Generate images
                     image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z,
                                                    bounding_box_max_x, bounding_box_max_y, bounding_box_max_z,
-                                                   voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam], 1, camera_list)
+                                                   voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, 
+                                                   grid_initial, camera_list[cam], 1, camera_list)
 
                     # Perform backprobagation
                     # compute image loss and sdf loss
@@ -898,7 +903,7 @@ if __name__ == "__main__":
 
                     # get total loss
                     image_loss[cam] *= 2000
-                    loss = image_loss[cam] + sdf_loss[cam] + Lp_loss
+                    loss += image_loss[cam] + sdf_loss[cam] + Lp_loss
                     image_loss[cam] = image_loss[cam] / len(camera_list)
                     sdf_loss[cam] = sdf_loss[cam] / len(camera_list)
                     
@@ -916,10 +921,21 @@ if __name__ == "__main__":
                         "\nsdf_loss", sdf_loss[cam].item(),
                         "\nlp_loss:", Lp_loss.item(),
                     )
-                    loss.backward()
-                    optimizer.step()
 
+
+                    for cam in range(len(camera_list)):
+                        image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z,
+                                                       bounding_box_max_x, bounding_box_max_y, bounding_box_max_z,
+                                                       voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam], 0, camera_list)
+
+                        torchvision.utils.save_image(image_initial, "./" + dir_name + "final_cam_" + str(grid_res_x) + "_" + str(
+                            cam) + "_" + str(i) + "-" + str(num) + ".png", nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+
+                loss.backward()
+                optimizer.step()
+                print(f"I have done {num} iterations per camera")
             i += 1
+        print(f"I have done {i} iterations per grid")
 
         # num_iters_per_res = 10
         # for iter_i in range(num_iters_per_res):
@@ -999,13 +1015,6 @@ if __name__ == "__main__":
         #                 image_initial, img_path, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0
         #             )
         # genetate result images
-        for cam in range(len(camera_list)):
-            image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z,
-                                           bounding_box_max_x, bounding_box_max_y, bounding_box_max_z,
-                                           voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam], 0, camera_list)
-
-            torchvision.utils.save_image(image_initial, "./" + dir_name + "final_cam_" + str(grid_res_x) + "_" + str(
-                cam) + ".png", nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
         # Save the final SDF result
         with open("./" + dir_name + str(grid_res_x) + "_best_sdf_bunny.pt", 'wb') as f:
             torch.save(grid_initial, f)

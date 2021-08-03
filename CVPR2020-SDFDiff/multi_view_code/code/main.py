@@ -8,12 +8,16 @@ import time
 import sys
 import os
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
+
 from torchvision.utils import save_image, make_grid
 # from clip_glue import CLIPLoss
 from clip_loss import ClipLoss
 # from augment import augment
 
 clip_loss = ClipLoss("a bunny rabbit mesh from maya zbrush")
+writer = SummaryWriter()
+tf_step = 0
 
 
 def read_txt(file_path, grid_res_x, grid_res_y, grid_res_z):
@@ -745,7 +749,7 @@ if __name__ == "__main__":
         # camera_list = [ Tensor([0, 0, i]) for i in np.linspace(4.8, 5.2, 25) ]
         camera_list = [ 
             Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
-            for a in np.linspace(0, math.pi / 4, 25)
+            for a in np.linspace(0, math.pi / 8, 4)
         ]
         # camera_list = [Tensor([0, 0, 5]),  # 0
         #             Tensor([0.1, 5, 0]),
@@ -833,7 +837,7 @@ if __name__ == "__main__":
     scale = 1
     start_time = time.time()
     # learning_rate = 0.01
-    learning_rate = 1e-2
+    learning_rate = 0.06
     tolerance = 8 / 10
 
     # image size
@@ -843,7 +847,7 @@ if __name__ == "__main__":
     start_time = time.time()
     per_cam_iteration_count = 5
     # per_cam_iteration_count = 100
-
+                    
     while (grid_res_x <= 64):
         tolerance *= 1.05
         image_target = []
@@ -862,9 +866,9 @@ if __name__ == "__main__":
         i = 0
         loss_camera = [1000] * len(camera_list) 
         average = 100000
-        num_steps = 64
+        num_steps = 50
 
-        while i<64: #sum(loss_camera) < average - tolerance / 2:
+        while i<num_steps: #sum(loss_camera) < average - tolerance / 2:
             average = sum(loss_camera)
             for cam in range(len(camera_list)):
                 loss = 100000
@@ -900,10 +904,17 @@ if __name__ == "__main__":
                     conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [
                                                          [0, 1, 0], [1, -6, 1], [0, 1, 0]], [[0, 0, 0], [0, 1, 0], [0, 0, 0]]]]])
                     Lp_loss = torch.sum(F.conv3d(conv_input, conv_filter) ** 2)
+                    
+                    writer.add_scalar(f'CLIP/loss-{grid_res_x}', image_loss[cam], tf_step)
+                    tf_step += 1
+
 
                     # get total loss
-                    image_loss[cam] *= 2000
+                    clip_weight = 100*grid_res_x/4
+                    image_loss[cam] *= clip_weight
                     loss += image_loss[cam] + sdf_loss[cam] + Lp_loss
+
+
                     image_loss[cam] = image_loss[cam] / len(camera_list)
                     sdf_loss[cam] = sdf_loss[cam] / len(camera_list)
                     
@@ -921,6 +932,8 @@ if __name__ == "__main__":
                         "\nsdf_loss", sdf_loss[cam].item(),
                         "\nlp_loss:", Lp_loss.item(),
                     )
+
+
 
 
                     for cam in range(len(camera_list)):

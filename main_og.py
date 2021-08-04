@@ -1,17 +1,7 @@
-from __future__ import print_function
-import torch
-import math
-import torchvision
-from torch.autograd import Variable
-from torchvision import transforms, datasets
-from torchvision.utils import save_image, make_grid
-import renderer
 import time
-import sys
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-
+import sys, os
+import torch.nn.functional as F
+from torchvision.utils import save_image, make_grid
 
 def read_txt(file_path, grid_res_x, grid_res_y, grid_res_z):
     with open(file_path) as file:
@@ -39,24 +29,25 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
         # Get bounding box min
         line = file.readline()
         bounding_box_min = line.split()
-        bounding_box_min_x = float(bounding_box_min[0])
+        bounding_box_min_x = float(bounding_box_min[0]) 
         bounding_box_min_y = float(bounding_box_min[1])
-        bounding_box_min_z = float(bounding_box_min[2])
+        bounding_box_min_z = float(bounding_box_min[2]) 
 
         line = file.readline()
         voxel_size = float(line)
 
         # max bounding box (we need to plus 0.0001 to avoid round error)
-        bounding_box_max_x = bounding_box_min_x + voxel_size * (grid_res_x - 1)# + 0.0001
-        bounding_box_max_y = bounding_box_min_y + voxel_size * (grid_res_y - 1) #+ 0.0001
-        bounding_box_max_z = bounding_box_min_z + voxel_size * (grid_res_z - 1) #+ 0.0001
+        bounding_box_max_x = bounding_box_min_x + voxel_size * (grid_res_x - 1)
+        bounding_box_max_y = bounding_box_min_y + voxel_size * (grid_res_y - 1) 
+        bounding_box_max_z = bounding_box_min_z + voxel_size * (grid_res_z - 1) 
 
         min_bounding_box_min = min(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z) 
-        print(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z)
+        # print(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z)
         max_bounding_box_max = max(bounding_box_max_x, bounding_box_max_y, bounding_box_max_z) 
-        print(bounding_box_max_x, bounding_box_max_y, bounding_box_max_z)
+        # print(bounding_box_max_x, bounding_box_max_y, bounding_box_max_z)
         max_dist = max(bounding_box_max_x - bounding_box_min_x, bounding_box_max_y - bounding_box_min_y, bounding_box_max_z - bounding_box_min_z)
 
+        # max_dist += 0.1
         max_grid_res = max(grid_res_x, grid_res_y, grid_res_z)
 
         grid = []
@@ -65,7 +56,9 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
             for j in range(grid_res_y):
                 grid[i].append([])
                 for k in range(grid_res_z):
+                    # grid_value = float(file.readline())
                     grid[i][j].append(2)
+                    # lst.append(grid_value)
 
         for i in range(grid_res_z):
             for j in range(grid_res_y):
@@ -74,7 +67,6 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
                     grid[k][j][i] = grid_value
 
         grid = Tensor(grid)
-
         target_grid = Tensor(target_grid_res, target_grid_res, target_grid_res)
 
         linear_space_x = torch.linspace(0, target_grid_res-1, target_grid_res)
@@ -88,7 +80,7 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
         min_x = Tensor([bounding_box_min_x]).repeat(target_grid_res*target_grid_res*target_grid_res, 1)
         min_y = Tensor([bounding_box_min_y]).repeat(target_grid_res*target_grid_res*target_grid_res, 1)
         min_z = Tensor([bounding_box_min_z]).repeat(target_grid_res*target_grid_res*target_grid_res, 1)
-        bounding_min_matrix = torch.cat((min_x, min_y, min_z), 1)
+        bounding_min_matrix = torch.cat((min_x, min_y, min_z), 1) 
 
         move_to_center_x = Tensor([(max_dist - (bounding_box_max_x - bounding_box_min_x)) / 2]).repeat(target_grid_res*target_grid_res*target_grid_res, 1)
         move_to_center_y = Tensor([(max_dist - (bounding_box_max_y - bounding_box_min_y)) / 2]).repeat(target_grid_res*target_grid_res*target_grid_res, 1)
@@ -96,7 +88,7 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
         move_to_center_matrix = torch.cat((move_to_center_x, move_to_center_y, move_to_center_z), 1)
         
         # Get the position of the grid points in the refined grid
-        points = bounding_min_matrix + target_voxel_size * max_dist / (target_bounding_box_max - target_bounding_box_min) * loop - move_to_center_matrix
+        points = bounding_min_matrix + target_voxel_size * max_dist / (target_bounding_box_max - target_bounding_box_min) * loop - move_to_center_matrix 
         if points[(points[:, 0] < bounding_box_min_x)].shape[0] != 0:
             points[(points[:, 0] < bounding_box_min_x)] = Tensor([bounding_box_max_x, bounding_box_max_y, bounding_box_max_z]).view(1,3)
         if points[(points[:, 1] < bounding_box_min_y)].shape[0] != 0:
@@ -117,6 +109,93 @@ def read_sdf(file_path, target_grid_res, target_bounding_box_min, target_boundin
 
         # Compute the sdf value of the grid points in the refined grid
         target_grid = calculate_sdf_value(grid, points, voxel_min_point, voxel_min_point_index, voxel_size, grid_res_x, grid_res_y, grid_res_z).view(target_grid_res, target_grid_res, target_grid_res)
+
+        # "shortest path" algorithm to fill the values (for changing from "cuboid" SDF to "cube" SDF)
+        # min of the SDF values of the closest points + the distance to these points
+        # calculate the max resolution get which areas we need to compute the shortest path
+        max_res = max(grid_res_x, grid_res_y, grid_res_z)
+        if grid_res_x == max_res:
+            min_x = 0
+            max_x = target_grid_res - 1
+            min_y = math.ceil((target_grid_res - target_grid_res / float(grid_res_x) * grid_res_y) / 2)
+            max_y = target_grid_res - min_y - 1
+            min_z = math.ceil((target_grid_res - target_grid_res / float(grid_res_x) * grid_res_z) / 2)
+            max_z = target_grid_res - min_z - 1
+        if grid_res_y == max_res:
+            min_x = math.ceil((target_grid_res - target_grid_res / float(grid_res_y) * grid_res_x) / 2)
+            max_x = target_grid_res - min_x - 1
+            min_y = 0
+            max_y = target_grid_res - 1
+            min_z = math.ceil((target_grid_res - target_grid_res / float(grid_res_y) * grid_res_z) / 2)
+            max_z = target_grid_res - min_z - 1
+        if grid_res_z == max_res:
+            min_x = math.ceil((target_grid_res - target_grid_res / float(grid_res_z) * grid_res_x) / 2)
+            max_x = target_grid_res - min_x - 1
+            min_y = math.ceil((target_grid_res - target_grid_res / float(grid_res_z) * grid_res_y) / 2)
+            max_y = target_grid_res - min_y - 1
+            min_z = 0
+            max_z = target_grid_res - 1
+        min_x = int(min_x)
+        max_x = int(max_x)
+        min_y = int(min_y)
+        max_y = int(max_y)
+        min_z = int(min_z)
+        max_z = int(max_z)
+       
+        # fill the values
+        res = target_grid.shape[0]
+        for i in range(res):
+            for j in range(res):
+                for k in range(res):
+
+                    # fill the values outside both x-axis and y-axis
+                    if k < min_x and j < min_y:
+                        target_grid[k][j][i] = target_grid[min_x][min_y][i] + math.sqrt((min_x - k) ** 2 + (min_y - j) ** 2) * voxel_size
+                    elif k < min_x and j > max_y:
+                        target_grid[k][j][i] = target_grid[min_x][max_y][i] + math.sqrt((min_x - k) ** 2 + (max_y - j) ** 2) * voxel_size
+                    elif k > max_x and j < min_y:
+                        target_grid[k][j][i] = target_grid[max_x][min_y][i] + math.sqrt((max_x - k) ** 2 + (min_y - j) ** 2) * voxel_size
+                    elif k > max_x and j > max_y:
+                        target_grid[k][j][i] = target_grid[max_x][max_y][i] + math.sqrt((max_x - k) ** 2 + (max_y - j) ** 2) * voxel_size
+                    
+                    # fill the values outside both x-axis and z-axis
+                    elif k < min_x and i < min_z:
+                        target_grid[k][j][i] = target_grid[min_x][j][min_z] + math.sqrt((min_x - k) ** 2 + (min_z - i) ** 2) * voxel_size
+                    elif k < min_x and i > max_z:
+                        target_grid[k][j][i] = target_grid[min_x][j][max_z] + math.sqrt((min_x - k) ** 2 + (max_z - i) ** 2) * voxel_size
+                    elif k > max_x and i < min_z:
+                        target_grid[k][j][i] = target_grid[max_x][j][min_z] + math.sqrt((max_x - k) ** 2 + (min_z - i) ** 2) * voxel_size
+                    elif k > max_x and i > max_z:
+                        target_grid[k][j][i] = target_grid[max_x][j][max_z] + math.sqrt((max_x - k) ** 2 + (max_z - i) ** 2) * voxel_size
+
+                    # fill the values outside both y-axis and z-axis
+                    elif j < min_y and i < min_z:
+                        target_grid[k][j][i] = target_grid[k][min_y][min_z] + math.sqrt((min_y - j) ** 2 + (min_z - i) ** 2) * voxel_size
+                    elif j < min_y and i > max_z:
+                        target_grid[k][j][i] = target_grid[k][min_y][max_z] + math.sqrt((min_y - j) ** 2 + (max_z - i) ** 2) * voxel_size
+                    elif j > max_y and i < min_z:
+                        target_grid[k][j][i] = target_grid[k][max_y][min_z] + math.sqrt((max_y - j) ** 2 + (min_z - i) ** 2) * voxel_size
+                    elif j > max_y and i > max_z:
+                        target_grid[k][j][i] = target_grid[k][max_y][max_z] + math.sqrt((max_y - j) ** 2 + (max_z - i) ** 2) * voxel_size
+
+                    # fill the values outside x-axis
+                    elif k < min_x:
+                        target_grid[k][j][i] = target_grid[min_x][j][i] + math.sqrt((min_x - k) ** 2) * voxel_size
+                    elif k > max_x:
+                        target_grid[k][j][i] = target_grid[max_x][j][i] + math.sqrt((max_x - k) ** 2) * voxel_size
+
+                    # fill the values outside y-axis
+                    elif j < min_y:
+                        target_grid[k][j][i] = target_grid[k][min_y][i] + math.sqrt((min_y - j) ** 2) * voxel_size
+                    elif j > max_y:
+                        target_grid[k][j][i] = target_grid[k][max_y][i] + math.sqrt((max_y - j) ** 2) * voxel_size
+
+                    # fill the values outside z-axis
+                    elif i < min_z:
+                        target_grid[k][j][i] = target_grid[k][j][min_z] + math.sqrt((min_z - i) ** 2) * voxel_size
+                    elif i > max_z:
+                        target_grid[k][j][i] = target_grid[k][j][max_z] + math.sqrt((max_z - i) ** 2) * voxel_size
+
         return target_grid
 
         
@@ -242,11 +321,12 @@ def get_intersection_normal(intersection_grid_normal, intersection_pos, voxel_mi
 def calculate_sdf_value(grid, points, voxel_min_point, voxel_min_point_index, voxel_size, grid_res_x, grid_res_y, grid_res_z):
 
     string = ""
+
     # Linear interpolate along x axis the eight values
     tx = (points[:,0] - voxel_min_point[:,0]) / voxel_size;
     string = string + "\n\nvoxel_size: \n" + str(voxel_size)
     string = string + "\n\ntx: \n" + str(tx)
-    # print(grid.shape)
+    print(grid.shape)
 
     if cuda:
         tx = tx.cuda()
@@ -348,22 +428,6 @@ def compute_intersection_pos(grid, intersection_pos_rough, voxel_min_point, voxe
 
     return (intersection_pos_rough + ray_direction * sdf_value.view(width,height,1).repeat(1,1,3))\
                             + (1 - mask.view(width,height,1).repeat(1,1,3))
-
-
-def differentiable_rendering(grid, grid_res, image_res, camera):
-    # print(grid_res, image_res, camera)
-    # return grid
-    global width, height
-    width = image_res
-    height = image_res
-
-    return generate_image(-2, -2, -2, 2, 2, 2, \
-    4./(grid_res-1), grid_res, grid_res, grid_res, image_res, image_res, grid, camera, False, []) 
-
-def differentiable_rendering_silhouette(grid, grid_res, image_res, camera):
-    # print(grid_res, image_res, camera)
-    return generate_image(-2, -2, -2, 2, 2, 2, \
-    4./(grid_res-1), grid_res, grid_res, grid_res, image_res, image_res, grid, camera, True)
 
 def generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
     bounding_box_max_x, bounding_box_max_y, bounding_box_max_z, \
@@ -469,20 +533,21 @@ def generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
     intersection_normal = intersection_normal / torch.unsqueeze(torch.norm(intersection_normal, p=2, dim=2), 2).repeat(1, 1, 3)
 
     # Create the point light
-    shading = 0
     light_position = camera.repeat(width, height, 1)
     light_norm = torch.unsqueeze(torch.norm(light_position - intersection_pos, p=2, dim=2), 2).repeat(1, 1, 3)
     light_direction_point = (light_position - intersection_pos) / light_norm
-    light_direction = camera.repeat(width, height, 1)
+
+    # Create the directional light
+    shading = 0
+    light_direction = (camera / torch.norm(camera, p=2)).repeat(width, height, 1)
     l_dot_n = torch.sum(light_direction * intersection_normal, 2).unsqueeze_(2)
-    shading += 2 * torch.max(l_dot_n, Tensor(width, height, 1).fill_(0))[:,:,0] / torch.pow(torch.sum((light_position - intersection_pos) * light_direction_point, dim=2), 2) 
+    shading += 10 * torch.max(l_dot_n, Tensor(width, height, 1).fill_(0))[:,:,0] / torch.pow(torch.sum((light_position - intersection_pos) * light_direction_point, dim=2), 2) 
 
     # Get the final image 
     image = shading * mask  
-    image[mask == 0] = 1
-    mask = torch.clamp(image * 10000, 0, 1)
+    image[mask == 0] = 0
 
-    return image, mask
+    return image
 
 # The energy E captures the difference between a rendered image and
 # a desired target image, and the rendered image is a function of the
@@ -499,8 +564,242 @@ def loss_fn(output, target, grid, voxel_size, grid_res_x, grid_res_y, grid_res_z
                                  + torch.pow(grid_normal_y[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
                                  + torch.pow(grid_normal_z[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2) - 1)) #/ ((grid_res-1) * (grid_res-1) * (grid_res-1))
 
+
+    print("\n\nimage loss: ", image_loss)
+    print("sdf loss: ", sdf_loss)
+
     return image_loss, sdf_loss
 
 def sdf_diff(sdf1, sdf2):
     return torch.sum(torch.abs(sdf1 - sdf2)).item()
 
+
+if __name__ == "__main__":
+
+    # define the folder name for results
+    dir_name = "results/"
+    os.mkdir("./" + dir_name)
+
+    # Speed up
+    torch.backends.cudnn.benchmark = True
+
+    cuda = True if torch.cuda.is_available() else False
+    print(cuda)
+
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
+    # width = 256
+    # height = 256
+
+    camera_list = [Tensor([0,0,5]), # 0
+                    Tensor([0.1,5,0]), 
+                    Tensor([5,0,0]), 
+                   Tensor([0,0,-5]), 
+                   Tensor([0.1,-5,0]), 
+                   Tensor([-5,0,0]), # 5
+
+                   Tensor([5/math.sqrt(2),0,5/math.sqrt(2)]),
+                   Tensor([5/math.sqrt(2),5/math.sqrt(2),0]),
+                   Tensor([0,5/math.sqrt(2),5/math.sqrt(2)]),
+
+                   Tensor([-5/math.sqrt(2),0,-5/math.sqrt(2)]),
+                   Tensor([-5/math.sqrt(2),-5/math.sqrt(2),0]), #10
+                   Tensor([0,-5/math.sqrt(2),-5/math.sqrt(2)]),
+
+                   Tensor([-5/math.sqrt(2),0,5/math.sqrt(2)]),
+                   Tensor([-5/math.sqrt(2),5/math.sqrt(2),0]),
+                   Tensor([0,-5/math.sqrt(2),5/math.sqrt(2)]),
+
+                   Tensor([5/math.sqrt(2),0,-5/math.sqrt(2)]),
+                   Tensor([5/math.sqrt(2),-5/math.sqrt(2),0]),
+                   Tensor([0,5/math.sqrt(2),-5/math.sqrt(2)]),
+
+                   Tensor([5/math.sqrt(3),5/math.sqrt(3),5/math.sqrt(3)]),
+                   Tensor([5/math.sqrt(3),5/math.sqrt(3),-5/math.sqrt(3)]),
+                   Tensor([5/math.sqrt(3),-5/math.sqrt(3),5/math.sqrt(3)]),
+                   Tensor([-5/math.sqrt(3),5/math.sqrt(3),5/math.sqrt(3)]),
+                   Tensor([-5/math.sqrt(3),-5/math.sqrt(3),5/math.sqrt(3)]),
+                   Tensor([-5/math.sqrt(3),5/math.sqrt(3),-5/math.sqrt(3)]),
+                   Tensor([5/math.sqrt(3),-5/math.sqrt(3),-5/math.sqrt(3)]),
+                   Tensor([-5/math.sqrt(3),-5/math.sqrt(3),-5/math.sqrt(3)])]
+
+    # bounding box
+    bounding_box_min_x = -2.
+    bounding_box_min_y = -2.
+    bounding_box_min_z = -2.
+    bounding_box_max_x = 2.
+    bounding_box_max_y = 2.
+    bounding_box_max_z = 2.
+    
+
+    # size of the image
+    width = 64
+    height = 64
+
+    # loss = 500
+
+    # image_loss_list = []
+    # sdf_loss_list = []
+    e = camera_list[0]
+
+    # Find proper grid resolution
+    pixel_distance = torch.tan(Tensor([math.pi/6])) * 2 / height
+
+    # Compute largest distance between the grid and the camera
+    largest_distance_camera_grid = torch.sqrt(torch.pow(max(torch.abs(e[0] - bounding_box_max_x), torch.abs(e[0] - bounding_box_min_x)), 2)
+                                            + torch.pow(max(torch.abs(e[1] - bounding_box_max_y), torch.abs(e[1] - bounding_box_min_y)), 2)
+                                            + torch.pow(max(torch.abs(e[2] - bounding_box_max_z), torch.abs(e[2] - bounding_box_min_z)), 2))
+    # grid_res_x = 8
+    # grid_res_y = 8
+    # grid_res_z = 8
+
+    # define the resolutions of the multi-resolution part
+    voxel_res_list = [8,16,24,32,40,48,56,64] 
+    grid_res_x = grid_res_y = grid_res_z = voxel_res_list.pop(0)
+    voxel_size = Tensor([4. / (grid_res_x-1)])
+
+    # Construct the sdf grid
+    grid_initial = grid_construction_sphere_big(grid_res_x, bounding_box_min_x, bounding_box_max_x) ####
+
+    # set parameters
+    # sdf_diff_list = []
+    # time_list = []
+    image_loss = [1000] * len(camera_list)
+    sdf_loss = [1000] * len(camera_list)
+    iterations = 0
+    scale = 1 
+    start_time = time.time()
+    learning_rate = 0.01
+    tolerance = 8 / 10
+
+    # image size
+    width = 256
+    height = 256
+
+    start_time = time.time()
+    while (grid_res_x <= 64):
+        tolerance *= 1.05
+        image_target = []
+
+        # load sdf file
+        grid_target = read_sdf("../bunny.sdf", grid_res_x, bounding_box_min_x, bounding_box_max_x, 4. / (grid_res_x-1))
+        grid_initial.requires_grad = True
+        optimizer = torch.optim.Adam([grid_initial], lr = learning_rate, eps=1e-2)
+
+        # output images
+        for cam in range(len(camera_list)):             
+            image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
+    bounding_box_max_x, bounding_box_max_y, bounding_box_max_z, \
+    voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam], 1, camera_list)
+            torchvision.utils.save_image(image_initial, "./" + dir_name + "grid_res_" + str(grid_res_x) + "_start_" + str(cam) + ".png", nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+            image = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
+            bounding_box_max_x, bounding_box_max_y, bounding_box_max_z, \
+            4. / (grid_res_x-1), grid_res_x, grid_res_y, grid_res_z, width, height, grid_target, camera_list[cam]+ torch.randn_like(camera_list[0]) * 0.015, 1, camera_list)
+            image_target.append(image)
+            torchvision.utils.save_image(image, "./" + dir_name + "grid_res_" + str(grid_res_x) + "_target_" + str(cam) + ".png", nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+       
+        # deform initial SDf to target SDF
+        i = 0
+        loss_camera = [1000] * len(camera_list)
+        average = 100000
+        while sum(loss_camera) < average - tolerance / 2:
+            average = sum(loss_camera)
+            for cam in range(len(camera_list)):
+                loss = 100000
+                prev_loss = loss + 1
+                num = 0
+                while((num < 5) and loss < prev_loss): 
+                    num += 1;
+                    prev_loss = loss
+                    iterations += 1
+
+                    optimizer.zero_grad()
+
+                    # Generate images
+                    image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
+    bounding_box_max_x, bounding_box_max_y, bounding_box_max_z, \
+    voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam], 1, camera_list)    
+
+                    # Perform backprobagation
+                    # compute image loss and sdf loss
+                    image_loss[cam], sdf_loss[cam] = loss_fn(image_initial, image_target[cam], grid_initial, voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height)
+
+                    # compute laplacian loss
+                    conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
+                    conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [[0, 1, 0], [1, -6, 1], [0, 1, 0]], [[0, 0, 0], [0, 1, 0], [0, 0, 0]]]]])
+                    Lp_loss = torch.sum(F.conv3d(conv_input, conv_filter) ** 2)
+
+                    # get total loss
+                    loss = image_loss[cam] + sdf_loss[cam] + Lp_loss
+                    image_loss[cam] = image_loss[cam] / len(camera_list)
+                    sdf_loss[cam] = sdf_loss[cam] / len(camera_list)
+                    loss_camera[cam] = image_loss[cam] + sdf_loss[cam]          
+                    
+                    # print out loss messages
+                    print("grid res:", grid_res_x, "iteration:", i, "num:", num, "loss:", loss, "\ncamera:", camera_list[cam])
+                    loss.backward()
+                    optimizer.step()                
+
+            i += 1
+
+        # genetate result images
+        for cam in range(len(camera_list)):
+            image_initial = generate_image(bounding_box_min_x, bounding_box_min_y, bounding_box_min_z, \
+        bounding_box_max_x, bounding_box_max_y, bounding_box_max_z, \
+        voxel_size, grid_res_x, grid_res_y, grid_res_z, width, height, grid_initial, camera_list[cam],0, camera_list)
+
+            torchvision.utils.save_image(image_initial, "./" + dir_name + "final_cam_" + str(grid_res_x) + "_" + str(cam) + ".png", nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+
+        # Save the final SDF result
+        with open("./" + dir_name + str(grid_res_x) + "_best_sdf_bunny.pt", 'wb') as f:
+            torch.save(grid_initial, f) 
+
+        # moves on to the next resolution stage 
+        if grid_res_x < 64:
+            grid_res_update_x = grid_res_update_y = grid_res_update_z = voxel_res_list.pop(0)
+            voxel_size_update = (bounding_box_max_x - bounding_box_min_x) / (grid_res_update_x - 1)
+            grid_initial_update = Tensor(grid_res_update_x, grid_res_update_y, grid_res_update_z)
+            linear_space_x = torch.linspace(0, grid_res_update_x-1, grid_res_update_x)
+            linear_space_y = torch.linspace(0, grid_res_update_y-1, grid_res_update_y)
+            linear_space_z = torch.linspace(0, grid_res_update_z-1, grid_res_update_z)
+            first_loop = linear_space_x.repeat(grid_res_update_y * grid_res_update_z, 1).t().contiguous().view(-1).unsqueeze_(1)
+            second_loop = linear_space_y.repeat(grid_res_update_z, grid_res_update_x).t().contiguous().view(-1).unsqueeze_(1)
+            third_loop = linear_space_z.repeat(grid_res_update_x * grid_res_update_y).unsqueeze_(1)
+            loop = torch.cat((first_loop, second_loop, third_loop), 1).cuda()
+            min_x = Tensor([bounding_box_min_x]).repeat(grid_res_update_x*grid_res_update_y*grid_res_update_z, 1)
+            min_y = Tensor([bounding_box_min_y]).repeat(grid_res_update_x*grid_res_update_y*grid_res_update_z, 1)
+            min_z = Tensor([bounding_box_min_z]).repeat(grid_res_update_x*grid_res_update_y*grid_res_update_z, 1)
+            bounding_min_matrix = torch.cat((min_x, min_y, min_z), 1)
+
+            # Get the position of the grid points in the refined grid
+            points = bounding_min_matrix + voxel_size_update * loop
+            voxel_min_point_index_x = torch.floor((points[:,0].unsqueeze_(1) - min_x) / voxel_size).clamp(max=grid_res_x-2)
+            voxel_min_point_index_y = torch.floor((points[:,1].unsqueeze_(1) - min_y) / voxel_size).clamp(max=grid_res_y-2)
+            voxel_min_point_index_z = torch.floor((points[:,2].unsqueeze_(1) - min_z) / voxel_size).clamp(max=grid_res_z-2)
+            voxel_min_point_index = torch.cat((voxel_min_point_index_x, voxel_min_point_index_y, voxel_min_point_index_z), 1)
+            voxel_min_point = bounding_min_matrix + voxel_min_point_index * voxel_size
+
+            # Compute the sdf value of the grid points in the refined grid
+            grid_initial_update = calculate_sdf_value(grid_initial, points, voxel_min_point, voxel_min_point_index, voxel_size, grid_res_x, grid_res_y, grid_res_z).view(grid_res_update_x, grid_res_update_y, grid_res_update_z)
+
+            # Update the grid resolution for the refined sdf grid
+            grid_res_x = grid_res_update_x
+            grid_res_y = grid_res_update_y
+            grid_res_z = grid_res_update_z
+
+            # Update the voxel size for the refined sdf grid
+            voxel_size = voxel_size_update
+
+            # Update the sdf grid
+            grid_initial = grid_initial_update.data
+
+            # Double the size of the image
+            if width < 256:
+                width = int(width * 2)
+                height = int(height * 2)
+            learning_rate /= 1.03
+
+    print("Time:", time.time() - start_time)
+
+    print("----- END -----")
+    

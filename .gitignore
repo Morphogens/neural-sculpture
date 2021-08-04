@@ -1,6 +1,12 @@
-results/
 __pycache__
 *.pyc
 *.so
-build/
 .DS_Store
+
+.vscode/settings.json
+
+build
+renderer.egg-info
+dist
+
+results/

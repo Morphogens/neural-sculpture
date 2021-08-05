@@ -7,7 +7,7 @@ import torchvision
 import numpy as np
 
 import renderer
-from clip_loss import ClipLoss
+from clip_loss import CLIPLoss
 from grid_utils import grid_construction_sphere_big, get_grid_normal, get_intersection_normal
 
 # NOTE: speed up
@@ -24,33 +24,50 @@ class SDFClip:
     ):
         self.out_img_width = out_img_width
         self.out_img_height = out_img_height
-
         self.out_dir = out_dir
+
         os.makedirs(self.out_dir, exist_ok=True)
 
         self.use_single_cam = True
-        self.voxel_res_list = [
-            8,
-            16,
-            24,
-            32,
-            40,
-            48,
-            56,
-            64,
-        ]
+        self.voxel_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print('USING: ', self.device)
+        print('SDFClip device: ', self.device)
 
         if self.device == 'cuda':
             self.Tensor = torch.cuda.FloatTensor
         else:
             self.Tensor = torch.FloatTensor
 
-        self.clip_loss = ClipLoss(prompt)
+        self.clip_loss = CLIPLoss(
+            text_target=prompt,
+            device=self.device,
+        )
 
-    def run(self, ):
+    def run(
+        self,
+        learning_rate: float = 1e-2,
+        tolerance: float = 8 / 10,
+        num_iters_per_cam=5,
+        num_iters_per_res: int = 64,
+    ):
+        bounding_box_min_x = -2.
+        bounding_box_min_y = -2.
+        bounding_box_min_z = -2.
+        bounding_box_max_x = 2.
+        bounding_box_max_y = 2.
+        bounding_box_max_z = 2.
+
+        grid_res_x = grid_res_y = grid_res_z = self.voxel_res_list.pop(0)
+        voxel_size = self.Tensor([4. / (grid_res_x - 1)])
+
+        grid_initial = grid_construction_sphere_big(
+            grid_res_x,
+            bounding_box_min_x,
+            bounding_box_max_x,
+        )
+        grid_initial.requires_grad = True
+
         if self.use_single_cam:
             num_cameras = 1
             camera_angle_list = [self.Tensor([0, 0, 5])]
@@ -61,57 +78,10 @@ class SDFClip:
                 for a in np.linspace(0, math.pi / 4, num_cameras)
             ]
 
-        # bounding box
-        bounding_box_min_x = -2.
-        bounding_box_min_y = -2.
-        bounding_box_min_z = -2.
-        bounding_box_max_x = 2.
-        bounding_box_max_y = 2.
-        bounding_box_max_z = 2.
+        image_loss_list = [math.inf] * num_cameras
+        sdf_loss_list = [math.inf] * num_cameras
 
-        # image_loss_list = []
-        # sdf_loss_list = []
-        initial_camera_angle = camera_angle_list[0]
-
-        # Find proper grid resolution
-        # TODO: remove
-        # pixel_distance = torch.tan(self.Tensor([math.pi / 6])) * 2 / self.out_img_height
-
-        # Compute largest distance between the grid and the camera
-        # largest_distance_camera_grid = torch.sqrt(
-        #     torch.pow(
-        #         max(torch.abs(initial_camera_angle[0] - bounding_box_max_x),
-        #             torch.abs(initial_camera_angle[0] - bounding_box_min_x)), 2) +
-        #     torch.pow(
-        #         max(torch.abs(initial_camera_angle[1] - bounding_box_max_y),
-        #             torch.abs(initial_camera_angle[1] - bounding_box_min_y)), 2) +
-        #     torch.pow(
-        #         max(torch.abs(initial_camera_angle[2] - bounding_box_max_z),
-        #             torch.abs(initial_camera_angle[2] - bounding_box_min_z)), 2))
-
-        grid_res_x = grid_res_y = grid_res_z = self.voxel_res_list.pop(0)
-        voxel_size = self.Tensor([4. / (grid_res_x - 1)])
-
-        # Construct the sdf grid
-        grid_initial = grid_construction_sphere_big(
-            grid_res_x,
-            bounding_box_min_x,
-            bounding_box_max_x,
-        )
-        grid_initial.requires_grad = True
-
-        # set parameters
-        # sdf_diff_list = []
-        # time_list = []
-        image_loss = [math.inf] * num_cameras
-        sdf_loss = [math.inf] * num_cameras
         iterations = 0
-        # scale = 1
-        # learning_rate = 0.01
-        learning_rate = 1e-2
-        tolerance = 8 / 10
-
-        per_cam_iteration_count = 5
         while len(self.voxel_res_list):
             i = 0
             loss_camera = [1000] * num_cameras
@@ -127,18 +97,14 @@ class SDFClip:
                 eps=1e-2,
             )
 
-            while i < 64:  #sum(loss_camera) < average - tolerance / 2:
+            while i < num_iters_per_res:  #sum(loss_camera) < average - tolerance / 2:
                 average = sum(loss_camera)
                 for cam in range(num_cameras):
-                    loss = 100000
-                    # loss = torch.self.tensor(5000).half()
+                    prev_loss = math.inf
 
-                    prev_loss = loss + 1
-                    num = 0
                     loss = 0
-                    optimizer.zero_grad()
-                    while ((num < per_cam_iteration_count)
-                           and loss < prev_loss):
+                    num = 0
+                    while ((num < num_iters_per_cam) and loss < prev_loss):
                         num += 1
                         prev_loss = loss
                         iterations += 1
@@ -165,12 +131,14 @@ class SDFClip:
 
                         # Perform backprobagation
                         # compute image loss and sdf loss
-                        image_loss[cam], sdf_loss[cam] = self.loss_fn(
-                            image_initial, None, grid_initial, voxel_size,
-                            grid_res_x, grid_res_y, grid_res_z,
-                            self.out_img_width, self.out_img_height)
+                        image_loss_list[cam], sdf_loss_list[
+                            cam] = self.loss_fn(image_initial, None,
+                                                grid_initial, voxel_size,
+                                                grid_res_x, grid_res_y,
+                                                grid_res_z, self.out_img_width,
+                                                self.out_img_height)
 
-                        clip_loss_val = image_loss[cam].item()
+                        clip_loss_val = image_loss_list[cam].item()
                         # compute laplacian loss
                         conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
                         conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0],
@@ -186,12 +154,15 @@ class SDFClip:
                             F.conv3d(conv_input, conv_filter)**2)
 
                         # get total loss
-                        image_loss[cam] *= 2000
-                        loss += image_loss[cam] + sdf_loss[cam] + Lp_loss
-                        image_loss[cam] = image_loss[cam] / num_cameras
-                        sdf_loss[cam] = sdf_loss[cam] / num_cameras
+                        image_loss_list[cam] *= 2000
+                        loss += image_loss_list[cam] + sdf_loss_list[
+                            cam] + Lp_loss
+                        image_loss_list[
+                            cam] = image_loss_list[cam] / num_cameras
+                        sdf_loss_list[cam] = sdf_loss_list[cam] / num_cameras
 
-                        loss_camera[cam] = image_loss[cam] + sdf_loss[cam]
+                        loss_camera[
+                            cam] = image_loss_list[cam] + sdf_loss_list[cam]
 
                         # print out loss messages
                         print(
@@ -208,9 +179,9 @@ class SDFClip:
                             "\nclip_loss_val",
                             clip_loss_val,
                             "\nimage_loss:",
-                            image_loss[cam].item(),
+                            image_loss_list[cam].item(),
                             "\nsdf_loss",
-                            sdf_loss[cam].item(),
+                            sdf_loss_list[cam].item(),
                             "\nlp_loss:",
                             Lp_loss.item(),
                         )
@@ -247,8 +218,10 @@ class SDFClip:
                                 scale_each=False,
                                 pad_value=0)
 
+                    optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+
                     print(f"I have done {num} iterations per camera")
                 i += 1
             print(f"I have done {i} iterations per grid")
@@ -279,13 +252,13 @@ class SDFClip:
 
             #             # Perform backprobagation
             #             # compute image loss and sdf loss
-            #             image_loss, sdf_loss = self.loss_fn(
+            #             image_loss_list, sdf_loss_list = self.loss_fn(
             #                 image_initial, None, grid_initial,
             #                 voxel_size, grid_res_x, grid_res_y, grid_res_z,
             #                 self.out_img_width, self.out_img_height
             #             )
 
-            #             clip_loss_val = image_loss.item()
+            #             clip_loss_val = image_loss_list.item()
             #             # compute laplacian loss
             #             conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
             #             conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [
@@ -293,10 +266,10 @@ class SDFClip:
             #             Lp_loss = torch.sum(F.conv3d(conv_input, conv_filter) ** 2)
 
             #             # get total loss
-            #             loss += (image_loss * 1000 + sdf_loss + Lp_loss)
+            #             loss += (image_loss_list * 1000 + sdf_loss_list + Lp_loss)
 
             #             avg_image_loss += image_loss
-            #             avg_sdf_loss += sdf_loss
+            #             avg_sdf_loss += sdf_loss_list
             #             avg_Lp_loss += Lp_loss
 
             #             loss.backward()

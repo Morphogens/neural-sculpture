@@ -9,4 +9,7 @@ build
 renderer.egg-info
 dist
 
-results/
+results
+experiments
+
+.ipynb_checkpoints

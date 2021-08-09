@@ -18,6 +18,8 @@ def grid_construction_sphere_big(
 
     grid = torch.sqrt(x_dim * x_dim + y_dim * y_dim + z_dim * z_dim) - 1.6
 
+    grid += torch.rand_like(grid)
+
     return grid.to(device)
 
 

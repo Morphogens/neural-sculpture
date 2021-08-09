@@ -43,7 +43,7 @@ class CLIPLoss():
     def augment(
         self,
         img_batch,
-        num_crops=64,
+        num_crops=32,
         crop_scaler=1,
     ):
         target_img_size = img_batch.shape[-1]

@@ -10,6 +10,7 @@ renderer.egg-info
 dist
 
 results
+og_results
 experiments
 
 .ipynb_checkpoints

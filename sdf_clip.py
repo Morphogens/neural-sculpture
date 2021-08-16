@@ -1,11 +1,15 @@
 import os
 import math
+import glob
+import subprocess
 from typing import *
 
 import torch
 import torch.nn.functional as F
 import torchvision
 import numpy as np
+from IPython.display import display, clear_output
+from PIL import Image
 
 from clip_loss import CLIPLoss
 from grid_utils import grid_construction_sphere_big, get_grid_normal
@@ -28,386 +32,23 @@ class SDFCLIP:
         prompt: str = "a bunny rabbit mesh rendered with maya zbrush",
         out_img_width: int = 256,
         out_img_height: int = 256,
-        out_dir: str = "./results",
+        use_single_cam: bool = True,
+        print_jupyter: bool = False,
+        save_results: bool = True,
     ):
+        self.prompt = prompt
         self.out_img_width = out_img_width
         self.out_img_height = out_img_height
-        self.out_dir = out_dir
+        self.use_single_cam = use_single_cam
+        self.print_jupyter = print_jupyter
+        self.save_results = save_results
 
-        os.makedirs(self.out_dir, exist_ok=True)
-
-        self.use_single_cam = True
-        self.voxel_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
+        self.sdf_grid_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
 
         self.clip_loss = CLIPLoss(
             text_target=prompt,
             device=device,
         )
-
-    def run(
-        self,
-        learning_rate: float = 1e-1,
-        tolerance: float = 8 / 10,
-        num_iters_per_cam=1,
-        num_iters_per_res: int = 64,
-        image_loss_weight: float = 2000.,
-        sdf_loss_weight: float = 1.,
-        lp_loss_weight: float = 1.,
-    ):
-        bounding_box_min_x = -2.
-        bounding_box_min_y = -2.
-        bounding_box_min_z = -2.
-        bounding_box_max_x = 2.
-        bounding_box_max_y = 2.
-        bounding_box_max_z = 2.
-
-        grid_res_x = grid_res_y = grid_res_z = self.voxel_res_list.pop(0)
-        voxel_size = Tensor([4. / (grid_res_x - 1)])
-
-        grid_initial = grid_construction_sphere_big(
-            grid_res_x,
-            bounding_box_min_x,
-            bounding_box_max_x,
-        )
-        grid_initial.requires_grad = True
-
-        if self.use_single_cam:
-            num_cameras = 1
-            camera_angle_list = [Tensor([0, 0, 5])]
-        else:
-            num_cameras = 26
-            camera_angle_list = [
-                Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
-                for a in np.linspace(0, math.pi / 4, num_cameras)
-            ]
-
-        image_loss_list = [math.inf] * num_cameras
-        sdf_loss_list = [math.inf] * num_cameras
-
-        optimizer = torch.optim.Adam(
-            [grid_initial],
-            lr=learning_rate,
-            # eps=1e-2,
-            eps=1e-8,
-        )
-
-        global_iter = 0
-
-        while len(self.voxel_res_list):
-            loss_camera = [1000] * num_cameras
-            average = 100000
-
-            tolerance *= 1.05
-
-            for res_iter in range(num_iters_per_res):
-                # if sum(loss_camera) > average - tolerance / 2:
-                #     break
-
-                average = sum(loss_camera)
-
-                for cam in range(num_cameras):
-                    prev_loss = math.inf
-
-                    num = 0
-                    while num < num_iters_per_cam:  # and loss < prev_loss:
-                        loss = 0
-                        num += 1
-                        prev_loss = loss
-
-                        # Generate images
-                        image_initial = generate_image(
-                            bounding_box_min_x,
-                            bounding_box_min_y,
-                            bounding_box_min_z,
-                            bounding_box_max_x,
-                            bounding_box_max_y,
-                            bounding_box_max_z,
-                            voxel_size,
-                            grid_res_x,
-                            grid_res_y,
-                            grid_res_z,
-                            self.out_img_width,
-                            self.out_img_height,
-                            grid_initial,
-                            camera_angle_list[cam],
-                            1,
-                            camera_angle_list,
-                        )
-
-                        image_loss, sdf_loss = self.loss_fn(
-                            image_initial, None, grid_initial, voxel_size,
-                            grid_res_x, grid_res_y, grid_res_z,
-                            self.out_img_width, self.out_img_height)
-
-                        image_loss *= image_loss_weight
-                        sdf_loss *= sdf_loss_weight
-                        # sdf_loss /= grid_res_x
-
-                        image_loss_list[cam] = image_loss
-                        sdf_loss_list[cam] = sdf_loss
-
-                        conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
-                        conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0],
-                                                                 [0, 1, 0],
-                                                                 [0, 0, 0]],
-                                                                [[0, 1, 0],
-                                                                 [1, -6, 1],
-                                                                 [0, 1, 0]],
-                                                                [[0, 0, 0],
-                                                                 [0, 1, 0],
-                                                                 [0, 0, 0]]]]])
-                        lp_loss = torch.sum(
-                            F.conv3d(conv_input, conv_filter)**2)
-
-                        lp_loss *= lp_loss_weight
-                        # lp_loss /= grid_res_x
-
-                        # get total loss
-                        loss += image_loss + sdf_loss + lp_loss
-
-                        image_loss_list[cam] = image_loss / num_cameras
-                        sdf_loss_list[cam] = sdf_loss / num_cameras
-
-                        loss_camera[
-                            cam] = image_loss_list[cam] + sdf_loss_list[cam]
-
-                        if global_iter % 5 == 0:
-                            # print out loss messages
-                            print(
-                                "\ngrid res:",
-                                grid_res_x,
-                                "iteration:",
-                                res_iter,
-                                "num:",
-                                num,
-                                "\ncamera:",
-                                camera_angle_list[cam],
-                                "\nloss:",
-                                (loss / num_cameras).item(),
-                                "\nimage_loss:",
-                                image_loss.item(),
-                                "\nsdf_loss",
-                                sdf_loss.item(),
-                                "\nlp_loss:",
-                                lp_loss.item(),
-                            )
-
-                            image_initial = generate_image(
-                                bounding_box_min_x,
-                                bounding_box_min_y,
-                                bounding_box_min_z,
-                                bounding_box_max_x,
-                                bounding_box_max_y,
-                                bounding_box_max_z,
-                                voxel_size,
-                                grid_res_x,
-                                grid_res_y,
-                                grid_res_z,
-                                self.out_img_width,
-                                self.out_img_height,
-                                grid_initial,
-                                camera_angle_list[cam],
-                                0,
-                                camera_angle_list,
-                            )
-
-                            torchvision.utils.save_image(
-                                image_initial,
-                                "./" + self.out_dir + "/" + "final_cam_" +
-                                str(grid_res_x) + "_" + str(cam) + "_" +
-                                str(res_iter) + "-" + str(num) + ".png",
-                                nrow=8,
-                                padding=2,
-                                normalize=False,
-                                range=None,
-                                scale_each=False,
-                                pad_value=0)
-
-                        optimizer.zero_grad()
-                        loss.backward()
-                        optimizer.step()
-
-                        global_iter += 1
-
-            # num_iters_per_res = 10
-            # for iter_i in range(num_iters_per_res):
-            #     # loss = 0
-            #     # avg_image_loss = 0
-            #     # avg_sdf_loss = 0
-            #     # avg_Lp_loss = 0
-            #     # optimizer.zero_grad()
-
-            #     for cam in range(num_cameras):
-            #         for _ in range(5):
-            #             loss = 0
-            #             avg_image_loss = 0
-            #             avg_sdf_loss = 0
-            #             avg_Lp_loss = 0
-            #             optimizer.zero_grad()
-
-            #             # Generate images
-            #             image_initial = self.generate_image(
-            #                 bounding_box_min_x, bounding_box_min_y, bounding_box_min_z,
-            #                 bounding_box_max_x, bounding_box_max_y, bounding_box_max_z,
-            #                 voxel_size, grid_res_x, grid_res_y, grid_res_z, self.out_img_width, self.out_img_height,
-            #                 grid_initial, camera_angle_list[cam], 1, camera_angle_list
-            #             )
-
-            #             # Perform backprobagation
-            #             # compute image loss and sdf loss
-            #             image_loss_list, sdf_loss_list = self.loss_fn(
-            #                 image_initial, None, grid_initial,
-            #                 voxel_size, grid_res_x, grid_res_y, grid_res_z,
-            #                 self.out_img_width, self.out_img_height
-            #             )
-
-            #             conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
-            #             conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [
-            #                                                     [0, 1, 0], [1, -6, 1], [0, 1, 0]], [[0, 0, 0], [0, 1, 0], [0, 0, 0]]]]])
-            #             lp_loss = torch.sum(F.conv3d(conv_input, conv_filter) ** 2)
-
-            #             # get total loss
-            #             loss += (image_loss_list * 1000 + sdf_loss_list + lp_loss)
-
-            #             avg_image_loss += image_loss
-            #             avg_sdf_loss += sdf_loss_list
-            #             avg_Lp_loss += lp_loss
-
-            #             loss.backward()
-            #             optimizer.step()
-
-            #     # loss.backward()
-            #     # optimizer.step()
-
-            #     # print out loss messages
-            #     print(
-            #         '\n', iter_i,
-            #         "\ngrid res:", grid_res_x,
-            #         "\nloss:", loss.item(),
-            #         "\nimage_loss:", avg_image_loss.item(),
-            #         "\nsdf_loss", avg_sdf_loss.item(),
-            #         "\nlp_loss:", avg_Lp_loss.item(),
-            #     )
-
-            #     if iter_i % 1 == 0:
-            #         # genetate result images
-            #         for cam in range(num_cameras)[:5]:
-            #             image_initial = self.generate_image(
-            #                 bounding_box_min_x, bounding_box_min_y, bounding_box_min_z,
-            #                 bounding_box_max_x, bounding_box_max_y, bounding_box_max_z,
-            #                 voxel_size, grid_res_x, grid_res_y, grid_res_z, self.out_img_width, self.out_img_height,
-            #                 grid_initial, camera_angle_list[cam], 0, camera_angle_list
-            #             )
-
-            #             # img_path = "./" + self.out_dir + "/" + "final_cam_" + str(grid_res_x) + "_" + str(cam) + ".png"
-            #             img_path = f"./{self.out_dir}/{grid_res_x}_{iter_i}_cam:{cam}.png"
-            #             torchvision.utils.save_image(
-            #                 image_initial, img_path, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0
-            #             )
-            # genetate result images
-            # Save the final SDF result
-
-            # with open(
-            #         "./" + self.out_dir + "/" + str(grid_res_x) +
-            #         "_best_sdf_bunny.pt", 'wb') as f:
-            #     torch.save(grid_initial, f)
-
-            # moves on to the next resolution stage
-            if len(self.voxel_res_list):
-                grid_res_update_x = grid_res_update_y = grid_res_update_z = self.voxel_res_list.pop(
-                    0)
-                voxel_size_update = (bounding_box_max_x - bounding_box_min_x
-                                     ) / (grid_res_update_x - 1)
-                grid_initial_update = Tensor(grid_res_update_x,
-                                             grid_res_update_y,
-                                             grid_res_update_z)
-                linear_space_x = torch.linspace(0, grid_res_update_x - 1,
-                                                grid_res_update_x)
-                linear_space_y = torch.linspace(0, grid_res_update_y - 1,
-                                                grid_res_update_y)
-                linear_space_z = torch.linspace(0, grid_res_update_z - 1,
-                                                grid_res_update_z)
-                first_loop = linear_space_x.repeat(
-                    grid_res_update_y * grid_res_update_z,
-                    1).t().contiguous().view(-1).unsqueeze_(1)
-                second_loop = linear_space_y.repeat(
-                    grid_res_update_z,
-                    grid_res_update_x).t().contiguous().view(-1).unsqueeze_(1)
-                third_loop = linear_space_z.repeat(
-                    grid_res_update_x * grid_res_update_y).unsqueeze_(1)
-                loop = torch.cat((first_loop, second_loop, third_loop),
-                                 1).cuda()
-                min_x = Tensor([bounding_box_min_x]).repeat(
-                    grid_res_update_x * grid_res_update_y * grid_res_update_z,
-                    1)
-                min_y = Tensor([bounding_box_min_y]).repeat(
-                    grid_res_update_x * grid_res_update_y * grid_res_update_z,
-                    1)
-                min_z = Tensor([bounding_box_min_z]).repeat(
-                    grid_res_update_x * grid_res_update_y * grid_res_update_z,
-                    1)
-                bounding_min_matrix = torch.cat((min_x, min_y, min_z), 1)
-
-                # Get the position of the grid points in the refined grid
-                points = bounding_min_matrix + voxel_size_update * loop
-                voxel_min_point_index_x = torch.floor(
-                    (points[:, 0].unsqueeze_(1) - min_x) /
-                    voxel_size).clamp(max=grid_res_x - 2)
-                voxel_min_point_index_y = torch.floor(
-                    (points[:, 1].unsqueeze_(1) - min_y) /
-                    voxel_size).clamp(max=grid_res_y - 2)
-                voxel_min_point_index_z = torch.floor(
-                    (points[:, 2].unsqueeze_(1) - min_z) /
-                    voxel_size).clamp(max=grid_res_z - 2)
-                voxel_min_point_index = torch.cat(
-                    (voxel_min_point_index_x, voxel_min_point_index_y,
-                     voxel_min_point_index_z), 1)
-                voxel_min_point = bounding_min_matrix + voxel_min_point_index * voxel_size
-
-                # Compute the sdf value of the grid points in the refined grid
-                grid_initial_update = calculate_sdf_value(
-                    grid_initial, points, voxel_min_point,
-                    voxel_min_point_index, voxel_size, grid_res_x, grid_res_y,
-                    grid_res_z).view(grid_res_update_x, grid_res_update_y,
-                                     grid_res_update_z)
-
-                # Update the grid resolution for the refined sdf grid
-                grid_res_x = grid_res_update_x
-                grid_res_y = grid_res_update_y
-                grid_res_z = grid_res_update_z
-
-                # Update the voxel size for the refined sdf grid
-                voxel_size = voxel_size_update
-
-                # Update the sdf grid
-                grid_initial = grid_initial_update.data
-                grid_initial.requires_grad = True
-
-                optimizer = torch.optim.Adam(
-                    [grid_initial],
-                    lr=learning_rate,
-                    # eps=1e-2,
-                    eps=1e-8,
-                )
-
-                # sdf_loss_weight /= 4
-
-                # Double the size of the image
-                if self.out_img_width < 256:
-                    self.out_img_width = int(self.out_img_width * 2)
-                    self.out_img_height = int(self.out_img_height * 2)
-
-                # learning_rate /= 1.03
-
-        print("----- END -----")
-
-    # The energy E captures the difference between a rendered image and
-    # a desired target image, and the rendered image is a function of the
-    # SDF values. You could write E(SDF) = ||rendering(SDF)-target_image||^2.
-    # In addition, there is a second term in the energy as you observed that
-    # constrains the length of the normal of the SDF to 1. This is a regularization
-    # term to make sure the output is still a valid SDF.
-    # HI JOEL
 
     def loss_fn(
         self,
@@ -422,31 +63,511 @@ class SDFCLIP:
         height,
     ):
 
-        # image_loss = torch.sum(torch.abs(target - output))  # / (width * height)
         output = output[None, None].repeat(1, 3, 1, 1)  # CLIP expects RGB
-        # output = augment(output, 8)
         image_loss = self.clip_loss.compute(output)
 
         [grid_normal_x, grid_normal_y,
          grid_normal_z] = get_grid_normal(grid, voxel_size, grid_res_x,
                                           grid_res_y, grid_res_z)
-        sdf_loss = torch.sum(
-            torch.abs(
-                torch.pow(
-                    grid_normal_x[1:grid_res_x - 1, 1:grid_res_y - 1,
-                                  1:grid_res_z - 1], 2) +
-                torch.pow(
-                    grid_normal_y[1:grid_res_x - 1, 1:grid_res_y - 1,
-                                  1:grid_res_z - 1], 2) +
-                torch.pow(
-                    grid_normal_z[1:grid_res_x - 1, 1:grid_res_y - 1,
-                                  1:grid_res_z - 1], 2) -
-                1))  # / ((grid_res-1) * (grid_res-1) * (grid_res-1))
-
-        # print("\n\nimage loss: ", image_loss)
-        # print("sdf loss: ", sdf_loss)
+        sdf_loss = torch.abs(torch.pow(grid_normal_x[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
+                                    + torch.pow(grid_normal_y[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
+                                    + torch.pow(grid_normal_z[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2) - 1).mean() #/ ((grid_res-1) * (grid_res-1) * (grid_res-1))
 
         return image_loss, sdf_loss
+
+    def run(
+        self,
+        out_dir: str = "./results",
+        learning_rate: float = 0.01,
+        image_loss_weight: float = 1 / 1000,
+        sdf_loss_weight: float = 1 / 1000,
+        lp_loss_weight: float = 1 / 1000,
+        max_std_res_loss: float = 0.8,
+        num_std_res_samples: float = 3,
+        max_num_iters_per_camera: int = 20,
+    ):
+        out_dir = os.path.join(out_dir, '_'.join(self.prompt.split(" ")))
+
+        num_out_gen_dirs = len(glob.glob(f"{out_dir}*"))
+        if num_out_gen_dirs:
+            out_dir += f"-{num_out_gen_dirs}"
+
+        os.makedirs(out_dir, exist_ok=True)
+
+        bounding_box_min_x = -2.
+        bounding_box_min_y = -2.
+        bounding_box_min_z = -2.
+        bounding_box_max_x = 2.
+        bounding_box_max_y = 2.
+        bounding_box_max_z = 2.
+
+        grid_res_idx = 0
+        grid_res_x = grid_res_y = grid_res_z = self.sdf_grid_res_list[
+            grid_res_idx]
+        voxel_size = Tensor([4. / (grid_res_x - 1)])
+
+        grid_initial = grid_construction_sphere_big(
+            grid_res_x,
+            bounding_box_min_x,
+            bounding_box_max_x,
+        )
+        grid_initial.requires_grad = True
+
+        if self.use_single_cam:
+            num_cameras = 1
+            camera_angle_list = [Tensor([0, 0, 5])]
+        else:
+            # num_cameras = 8
+            # camera_angle_list = [
+            #     Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
+            #     for a in np.linspace(0, math.pi / 4, num_cameras)
+            # ]
+            camera_angle_list = [
+                Tensor([0, 0, 5]),  # 0
+                Tensor([0.1, 5, 0]),
+                Tensor([5, 0, 0]),
+                Tensor([0, 0, -5]),
+                Tensor([0.1, -5, 0]),
+                Tensor([-5, 0, 0]),  # 5
+                Tensor([5 / math.sqrt(2), 0, 5 / math.sqrt(2)]),
+                Tensor([5 / math.sqrt(2), 5 / math.sqrt(2), 0]),
+                Tensor([0, 5 / math.sqrt(2), 5 / math.sqrt(2)]),
+                Tensor([-5 / math.sqrt(2), 0, -5 / math.sqrt(2)]),
+                Tensor([-5 / math.sqrt(2), -5 / math.sqrt(2), 0]),  #10
+                Tensor([0, -5 / math.sqrt(2), -5 / math.sqrt(2)]),
+                Tensor([-5 / math.sqrt(2), 0, 5 / math.sqrt(2)]),
+                Tensor([-5 / math.sqrt(2), 5 / math.sqrt(2), 0]),
+                Tensor([0, -5 / math.sqrt(2), 5 / math.sqrt(2)]),
+                Tensor([5 / math.sqrt(2), 0, -5 / math.sqrt(2)]),
+                Tensor([5 / math.sqrt(2), -5 / math.sqrt(2), 0]),
+                Tensor([0, 5 / math.sqrt(2), -5 / math.sqrt(2)]),
+                Tensor([5 / math.sqrt(3), 5 / math.sqrt(3), 5 / math.sqrt(3)]),
+                Tensor([5 / math.sqrt(3), 5 / math.sqrt(3),
+                        -5 / math.sqrt(3)]),
+                Tensor([5 / math.sqrt(3), -5 / math.sqrt(3),
+                        5 / math.sqrt(3)]),
+                Tensor([-5 / math.sqrt(3), 5 / math.sqrt(3),
+                        5 / math.sqrt(3)]),
+                Tensor(
+                    [-5 / math.sqrt(3), -5 / math.sqrt(3), 5 / math.sqrt(3)]),
+                Tensor(
+                    [-5 / math.sqrt(3), 5 / math.sqrt(3), -5 / math.sqrt(3)]),
+                Tensor(
+                    [5 / math.sqrt(3), -5 / math.sqrt(3), -5 / math.sqrt(3)]),
+                Tensor(
+                    [-5 / math.sqrt(3), -5 / math.sqrt(3), -5 / math.sqrt(3)])
+            ]
+            num_cameras = len(camera_angle_list)
+
+        optimizer = torch.optim.Adam(
+            [grid_initial],
+            lr=learning_rate,
+            eps=1e-8,
+        )
+
+        # NOTE: from the paper
+        # -   We should focus on the views with large losses. Our
+        #     approach first calculates the average loss for all
+        #     the camera views from the result of the previous iteration.
+        # -   If a loss for a view is greater
+        #     than the average loss, then during the current iteration,
+        #     we update SDF until the loss for this view is less than the
+        #     average (with 20 max updates).
+        # -   For the other views, we update the SDF five times. If one
+        #     update increases the loss, then we switch to the next view
+        #     directly. We stop our optimization process when the loss is
+        #     smaller than a given tolerance or the step length is too small.
+
+        global_iter = 0
+        cam_view_loss_list = [None] * num_cameras
+
+        for sdf_grid_res in self.sdf_grid_res_list:
+            res_loss_list = []
+            std_res_loss = None
+            avg_cam_view_loss = None
+            increase_res = False
+
+            sdf_grid_res_iter = 0
+            while not increase_res:
+                for cam_view_idx in range(num_cameras):
+                    prev_cam_loss = None
+                    for cam_iter in range(max_num_iters_per_camera):
+                        image_initial = generate_image(
+                            bounding_box_min_x,
+                            bounding_box_min_y,
+                            bounding_box_min_z,
+                            bounding_box_max_x,
+                            bounding_box_max_y,
+                            bounding_box_max_z,
+                            voxel_size,
+                            grid_res_x,
+                            grid_res_y,
+                            grid_res_z,
+                            self.out_img_width,
+                            self.out_img_height,
+                            grid_initial,
+                            camera_angle_list[cam_view_idx],
+                        )
+
+                        image_loss, sdf_loss = self.loss_fn(
+                            image_initial,
+                            None,
+                            grid_initial,
+                            voxel_size,
+                            grid_res_x,
+                            grid_res_y,
+                            grid_res_z,
+                            self.out_img_width,
+                            self.out_img_height,
+                        )
+
+                        image_loss *= torch.prod(
+                            torch.tensor(image_initial.shape).detach().clone())
+                        sdf_loss *= torch.prod(
+                            torch.tensor(grid_initial.shape).detach().clone())
+
+                        image_loss *= image_loss_weight
+                        sdf_loss *= sdf_loss_weight
+
+                        conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
+                        conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0],
+                                                                 [0, 1, 0],
+                                                                 [0, 0, 0]],
+                                                                [[0, 1, 0],
+                                                                 [1, -6, 1],
+                                                                 [0, 1, 0]],
+                                                                [[0, 0, 0],
+                                                                 [0, 1, 0],
+                                                                 [0, 0, 0]]]]])
+
+                        conv_result = (F.conv3d(conv_input, conv_filter)**2)
+                        lp_loss = conv_result.mean()
+                        lp_loss *= torch.prod(
+                            torch.tensor(conv_result.shape).detach().clone())
+                        lp_loss *= lp_loss_weight
+
+                        cam_view_loss = image_loss + sdf_loss + lp_loss
+
+                        if avg_cam_view_loss is not None:
+                            if cam_iter >= 5 and cam_view_loss < avg_cam_view_loss:
+                                break
+
+                        # if prev_cam_loss is not None:
+                        #     if cam_iter >= 5 and prev_cam_loss > cam_view_loss:
+                        #         break
+
+                        optimizer.zero_grad()
+                        cam_view_loss.backward()
+                        optimizer.step()
+
+                        cam_view_loss_list[cam_view_idx] = cam_view_loss
+
+                        prev_cam_loss = cam_view_loss
+
+                        global_iter += 1
+
+                    camera_angle_list = camera_angle_list[::-1]
+
+                    if True:  #global_iter % 5 == 0:
+                        if self.print_jupyter:
+                            clear_output(wait=True)
+
+                        print("\n")
+                        print("")
+                        print("image loss: ", image_loss)
+                        print("image weight: ",
+                              torch.prod(torch.tensor(image_initial.shape)))
+                        print("")
+                        print("sdf loss: ", sdf_loss)
+                        print("sdf weight: ",
+                              torch.prod(torch.tensor(grid_initial.shape)))
+                        print("")
+                        print("lp loss: ", lp_loss)
+                        print("lp weight: ",
+                              torch.prod(torch.tensor(conv_input.shape)))
+                        print("")
+                        print("loss: ", cam_view_loss)
+                        print("")
+                        print("STD:", std_res_loss)
+                        print("")
+                        print("AVG:", avg_cam_view_loss)
+                        print("")
+                        print("sdf grid res:", sdf_grid_res, " - "
+                              "iteration:", sdf_grid_res_iter + 1, " - ",
+                              "cam view idx", cam_view_idx, " - ",
+                              "cam iters:", cam_iter + 1)
+                        print("")
+
+                        if self.save_results:
+                            torchvision.utils.save_image(
+                                image_initial.detach(),
+                                "./" + out_dir + "/" + "final_cam_" +
+                                str(grid_res_x) + "_" + str(sdf_grid_res) +
+                                "-" + str(cam_view_idx) + ".jpg",
+                                nrow=8,
+                                padding=2,
+                                normalize=False,
+                                range=None,
+                                scale_each=False,
+                                pad_value=0)
+
+                        if self.print_jupyter:
+                            image_initial_array = image_initial.detach().cpu(
+                            ).numpy() * 255
+                            display(
+                                Image.fromarray(
+                                    image_initial_array.astype(np.uint8)))
+
+                avg_cam_view_loss = torch.tensor(cam_view_loss_list).mean()
+                res_loss_list.append(avg_cam_view_loss)
+
+                if len(res_loss_list) > num_std_res_samples:
+                    std_res_loss = torch.tensor(
+                        res_loss_list[-num_std_res_samples:]).std()
+                    if std_res_loss < max_std_res_loss:
+                        increase_res = True
+
+                sdf_grid_res_iter += 1
+
+        # # # # # # # # # # # # # # #
+        # # # # # # # # # # # # # # #
+        # # # # # # # # # # # # # # #
+
+        # global_iter = 0
+        # while grid_res_idx + 1 < len(self.sdf_grid_res_list):
+        #     # tolerance *= 1.05
+
+        #     loss_camera = [100000] * len(camera_angle_list)
+        #     average = 1000000
+        #     res_iter = 0
+        #     while sum(loss_camera) < average - tolerance or res_iter <= 1:
+        #         average = sum(loss_camera)
+        #         res_iter += 1
+
+        #         for cam in range(len(camera_angle_list)):
+        #             loss = math.inf
+        #             prev_loss = math.inf
+
+        #             cam_iter = 0
+        #             while cam_iter < 5 and loss < prev_loss or cam_iter <= 1:
+        #                 cam_iter += 1
+        #                 prev_loss = loss
+
+        #                 image_initial = generate_image(
+        #                     bounding_box_min_x,
+        #                     bounding_box_min_y,
+        #                     bounding_box_min_z,
+        #                     bounding_box_max_x,
+        #                     bounding_box_max_y,
+        #                     bounding_box_max_z,
+        #                     voxel_size,
+        #                     grid_res_x,
+        #                     grid_res_y,
+        #                     grid_res_z,
+        #                     self.out_img_width,
+        #                     self.out_img_height,
+        #                     grid_initial,
+        #                     camera_angle_list[cam],
+        #                 )
+
+        #                 image_loss, sdf_loss = self.loss_fn(
+        #                     image_initial,
+        #                     None,
+        #                     grid_initial,
+        #                     voxel_size,
+        #                     grid_res_x,
+        #                     grid_res_y,
+        #                     grid_res_z,
+        #                     self.out_img_width,
+        #                     self.out_img_height,
+        #                 )
+
+        #                 image_loss *= torch.prod(
+        #                     torch.tensor(image_initial.shape).detach().clone())
+        #                 sdf_loss *= torch.prod(
+        #                     torch.tensor(grid_initial.shape).detach().clone())
+
+        #                 image_loss *= image_loss_weight
+        #                 sdf_loss *= sdf_loss_weight
+
+        #                 conv_input = (grid_initial).unsqueeze(0).unsqueeze(0)
+        #                 conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0],
+        #                                                          [0, 1, 0],
+        #                                                          [0, 0, 0]],
+        #                                                         [[0, 1, 0],
+        #                                                          [1, -6, 1],
+        #                                                          [0, 1, 0]],
+        #                                                         [[0, 0, 0],
+        #                                                          [0, 1, 0],
+        #                                                          [0, 0, 0]]]]])
+
+        #                 conv_result = (F.conv3d(conv_input, conv_filter)**2)
+        #                 lp_loss = conv_result.mean()
+        #                 lp_loss *= torch.prod(
+        #                     torch.tensor(conv_result.shape).detach().clone())
+        #                 lp_loss *= lp_loss_weight
+
+        #                 loss = image_loss + sdf_loss + lp_loss
+
+        #                 loss_camera[cam] = image_loss + sdf_loss
+        #                 loss_camera[cam] /= num_cameras
+
+        #                 optimizer.zero_grad()
+        #                 loss.backward()
+        #                 optimizer.step()
+
+        #                 global_iter += 1
+
+        #             if True:  #global_iter % 5 == 0:
+        #                 if self.print_jupyter:
+        #                     clear_output(wait=True)
+
+        #                 print("\n")
+        #                 print("Tolerance / 2 ", tolerance / 2)
+        #                 print("Diff ", average - sum(loss_camera))
+        #                 print("Average ", average)
+        #                 print("Loss camera ", sum(loss_camera))
+        #                 print("")
+
+        #                 print("image loss: ", image_loss)
+        #                 print("image weight: ",
+        #                       torch.prod(torch.tensor(image_initial.shape)))
+        #                 print("sdf loss: ", sdf_loss)
+        #                 print("sdf weight: ",
+        #                       torch.prod(torch.tensor(grid_initial.shape)))
+        #                 print("lp loss: ", lp_loss)
+        #                 print("lp weight: ",
+        #                       torch.prod(torch.tensor(conv_input.shape)))
+        #                 print("")
+        #                 print("loss: ", loss)
+        #                 print("")
+        #                 print("grid res: ", grid_res_x, " - ", "res iter:",
+        #                       res_iter, " - ", "cam iter:", cam_iter, " - ",
+        #                       "cam: ", cam, "\ncamera:",
+        #                       camera_angle_list[cam])
+        #                 print("")
+
+        #                 if not self.print_jupyter:
+        #                     torchvision.utils.save_image(
+        #                         image_initial.detach(),
+        #                         "./" + out_dir + "/" + "final_cam_" +
+        #                         str(grid_res_x) + "_" + str(cam) + "_" +
+        #                         str(res_iter) + "-" + str(cam_iter) + ".jpg",
+        #                         nrow=8,
+        #                         padding=2,
+        #                         normalize=False,
+        #                         range=None,
+        #                         scale_each=False,
+        #                         pad_value=0)
+
+        #                 else:
+        #                     image_initial_array = image_initial.detach().cpu(
+        #                     ).numpy() * 255
+        #                     display(
+        #                         Image.fromarray(
+        #                             image_initial_array.astype(np.uint8)))
+
+            if grid_res_idx + 1 >= len(self.sdf_grid_res_list):
+                break
+            grid_res_update_x = grid_res_update_y = grid_res_update_z = self.sdf_grid_res_list[
+                grid_res_idx + 1]
+            voxel_size_update = (bounding_box_max_x -
+                                 bounding_box_min_x) / (grid_res_update_x - 1)
+            grid_initial_update = Tensor(grid_res_update_x, grid_res_update_y,
+                                         grid_res_update_z)
+            linear_space_x = torch.linspace(0, grid_res_update_x - 1,
+                                            grid_res_update_x)
+            linear_space_y = torch.linspace(0, grid_res_update_y - 1,
+                                            grid_res_update_y)
+            linear_space_z = torch.linspace(0, grid_res_update_z - 1,
+                                            grid_res_update_z)
+            first_loop = linear_space_x.repeat(
+                grid_res_update_y * grid_res_update_z,
+                1).t().contiguous().view(-1).unsqueeze_(1)
+            second_loop = linear_space_y.repeat(
+                grid_res_update_z,
+                grid_res_update_x).t().contiguous().view(-1).unsqueeze_(1)
+            third_loop = linear_space_z.repeat(grid_res_update_x *
+                                               grid_res_update_y).unsqueeze_(1)
+            loop = torch.cat((first_loop, second_loop, third_loop), 1).cuda()
+            min_x = Tensor([bounding_box_min_x]).repeat(
+                grid_res_update_x * grid_res_update_y * grid_res_update_z, 1)
+            min_y = Tensor([bounding_box_min_y]).repeat(
+                grid_res_update_x * grid_res_update_y * grid_res_update_z, 1)
+            min_z = Tensor([bounding_box_min_z]).repeat(
+                grid_res_update_x * grid_res_update_y * grid_res_update_z, 1)
+            bounding_min_matrix = torch.cat((min_x, min_y, min_z), 1)
+
+            # Get the position of the grid points in the refined grid
+            points = bounding_min_matrix + voxel_size_update * loop
+            voxel_min_point_index_x = torch.floor(
+                (points[:, 0].unsqueeze_(1) - min_x) /
+                voxel_size).clamp(max=grid_res_x - 2)
+            voxel_min_point_index_y = torch.floor(
+                (points[:, 1].unsqueeze_(1) - min_y) /
+                voxel_size).clamp(max=grid_res_y - 2)
+            voxel_min_point_index_z = torch.floor(
+                (points[:, 2].unsqueeze_(1) - min_z) /
+                voxel_size).clamp(max=grid_res_z - 2)
+            voxel_min_point_index = torch.cat(
+                (voxel_min_point_index_x, voxel_min_point_index_y,
+                 voxel_min_point_index_z), 1)
+            voxel_min_point = bounding_min_matrix + voxel_min_point_index * voxel_size
+
+            # Compute the sdf value of the grid points in the refined grid
+            grid_initial_update = calculate_sdf_value(
+                grid_initial, points, voxel_min_point, voxel_min_point_index,
+                voxel_size, grid_res_x, grid_res_y,
+                grid_res_z).view(grid_res_update_x, grid_res_update_y,
+                                 grid_res_update_z)
+
+            # Update the grid resolution for the refined sdf grid
+            grid_res_x = grid_res_update_x
+            grid_res_y = grid_res_update_y
+            grid_res_z = grid_res_update_z
+
+            # Update the voxel size for the refined sdf grid
+            voxel_size = voxel_size_update
+
+            # Update the sdf grid
+            grid_initial = grid_initial_update.data
+            grid_initial.requires_grad = True
+
+            # optimizer = torch.optim.Adam(
+            #     [grid_initial],
+            #     lr=learning_rate / 1.03,
+            #     eps=1e-8,
+            # )
+
+            # Double the size of the image
+            if self.out_img_width < 256:
+                self.out_img_width = int(self.out_img_width * 2)
+                self.out_img_height = int(self.out_img_height * 2)
+
+            # learning_rate /= 1.03
+            grid_res_idx += 1
+
+        out_video_path = os.path.join(out_dir, "generation.mp4")
+        print(f"Generating {out_video_path}")
+
+        cmd = ("ffmpeg -y "
+               "-r 5 "
+               f"-pattern_type glob -i '{out_dir}/*.jpg' "
+               "-vcodec libx264 "
+               "-crf 25 "
+               "-pix_fmt yuv420p "
+               f"{out_video_path}")
+
+        # cmd = ("ffmpeg -r 30 -f image2 -s 512x512 -y"
+        #        f" -i {out_dir}/*.jpg"
+        #        f" -vcodec libx264 -crf 25  -pix_fmt yuv420p"
+        #        f" {out_video_path}")
+
+        subprocess.check_call(cmd, shell=True)
+
+        print("\n----- END -----")
+
+        return grid_initial
 
 
 if __name__ == "__main__":

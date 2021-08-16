@@ -32,7 +32,6 @@ def calculate_sdf_value(
     tx = (points[:, 0] - voxel_min_point[:, 0]) / voxel_size
     string = string + "\n\nvoxel_size: \n" + str(voxel_size)
     string = string + "\n\ntx: \n" + str(tx)
-    print(grid.shape)
 
     if device == 'cuda':
         tx = tx.cuda()
@@ -167,8 +166,6 @@ def generate_image(
     height,
     grid: torch.Tensor,
     camera,
-    back,
-    camera_angle_list,
 ):
 
     # Get normal vectors for points on the grid

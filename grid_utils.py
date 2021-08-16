@@ -24,73 +24,41 @@ def grid_construction_sphere_big(
 
 
 def get_grid_normal(
-    grid: torch.Tensor,
-    voxel_size: float,
-    grid_res_x: int,
-    grid_res_y: int,
-    grid_res_z: int,
+    grid,
+    voxel_size,
+    grid_res_x,
+    grid_res_y,
+    grid_res_z,
 ):
+
     # largest index
     n_x = grid_res_x - 1
     n_y = grid_res_y - 1
     n_z = grid_res_z - 1
 
     # x-axis normal vectors
-    x_norm_1 = torch.cat(
-        (
-            grid[1:, :, :],
-            (3 * grid[n_x, :, :] - 3 * grid[n_x - 1, :, :] +
-             grid[n_x - 2, :, :]).unsqueeze_(0),
-        ),
-        dim=0,
-    )
-    x_norm_2 = torch.cat(
-        (
-            (-3 * grid[1, :, :] + 3 * grid[0, :, :] +
-             grid[2, :, :]).unsqueeze_(0),
-            grid[:n_x, :, :],
-        ),
-        dim=0,
-    )
-    grid_normal_x = (x_norm_1 - x_norm_2) / (2 * voxel_size)
+    X_1 = torch.cat(
+        (grid[1:, :, :], (3 * grid[n_x, :, :] - 3 * grid[n_x - 1, :, :] +
+                          grid[n_x - 2, :, :]).unsqueeze_(0)), 0)
+    X_2 = torch.cat(((-3 * grid[1, :, :] + 3 * grid[0, :, :] +
+                      grid[2, :, :]).unsqueeze_(0), grid[:n_x, :, :]), 0)
+    grid_normal_x = (X_1 - X_2) / (2 * voxel_size)
 
     # y-axis normal vectors
-    y_norm_1 = torch.cat(
-        (
-            grid[:, 1:, :],
-            (3 * grid[:, n_y, :] - 3 * grid[:, n_y - 1, :] +
-             grid[:, n_y - 2, :]).unsqueeze_(1),
-        ),
-        dim=1,
-    )
-    y_norm_2 = torch.cat(
-        (
-            (-3 * grid[:, 1, :] + 3 * grid[:, 0, :] +
-             grid[:, 2, :]).unsqueeze_(1),
-            grid[:, :n_y, :],
-        ),
-        dim=1,
-    )
-    grid_normal_y = (y_norm_1 - y_norm_2) / (2 * voxel_size)
+    Y_1 = torch.cat(
+        (grid[:, 1:, :], (3 * grid[:, n_y, :] - 3 * grid[:, n_y - 1, :] +
+                          grid[:, n_y - 2, :]).unsqueeze_(1)), 1)
+    Y_2 = torch.cat(((-3 * grid[:, 1, :] + 3 * grid[:, 0, :] +
+                      grid[:, 2, :]).unsqueeze_(1), grid[:, :n_y, :]), 1)
+    grid_normal_y = (Y_1 - Y_2) / (2 * voxel_size)
 
     # z-axis normal vectors
-    z_norm_1 = torch.cat(
-        (
-            grid[:, :, 1:],
-            (3 * grid[:, :, n_z] - 3 * grid[:, :, n_z - 1] +
-             grid[:, :, n_z - 2]).unsqueeze_(2),
-        ),
-        dim=2,
-    )
-    z_norm_2 = torch.cat(
-        (
-            (-3 * grid[:, :, 1] + 3 * grid[:, :, 0] +
-             grid[:, :, 2]).unsqueeze_(2),
-            grid[:, :, :n_z],
-        ),
-        dim=2,
-    )
-    grid_normal_z = (z_norm_1 - z_norm_2) / (2 * voxel_size)
+    Z_1 = torch.cat(
+        (grid[:, :, 1:], (3 * grid[:, :, n_z] - 3 * grid[:, :, n_z - 1] +
+                          grid[:, :, n_z - 2]).unsqueeze_(2)), 2)
+    Z_2 = torch.cat(((-3 * grid[:, :, 1] + 3 * grid[:, :, 0] +
+                      grid[:, :, 2]).unsqueeze_(2), grid[:, :, :n_z]), 2)
+    grid_normal_z = (Z_1 - Z_2) / (2 * voxel_size)
 
     return [grid_normal_x, grid_normal_y, grid_normal_z]
 

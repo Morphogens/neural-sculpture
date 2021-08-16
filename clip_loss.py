@@ -31,7 +31,7 @@ class CLIPLoss():
 
         self.aug_transform = torch.nn.Sequential(
             torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomAffine(24, (.1, .1)),
+            torchvision.transforms.RandomAffine(24, (.05, .05)),
         ).to(self.device)
 
         tokenized_text = clip.tokenize([text_target])
@@ -44,11 +44,10 @@ class CLIPLoss():
         self,
         img_batch,
         num_crops=32,
-        crop_scaler=1,
     ):
         target_img_size = img_batch.shape[-1]
         # print('img_batch.shape', img_batch.shape)
-        assert target_img_size > 8, target_img_size
+        # assert target_img_size > 8, target_img_size
 
         pad_size = target_img_size // 2
         img_batch = torch.nn.functional.pad(
@@ -72,7 +71,7 @@ class CLIPLoss():
                     1.2,
                     .3,
                     (),
-                ).clip(.43, 1.9) * target_img_size)
+                ).clip(.7, 1.3) * target_img_size)
 
             if crop > num_crops - 4:
                 crop_size = int(target_img_size * 1.4)
@@ -91,7 +90,7 @@ class CLIPLoss():
                                       offsety:offsety + crop_size, ]
             augmented_img = torch.nn.functional.interpolate(
                 augmented_img,
-                (int(224 * crop_scaler), int(224 * crop_scaler)),
+                (224, 224),
                 mode='bilinear',
                 align_corners=True,
             )
@@ -103,6 +102,8 @@ class CLIPLoss():
         img_batch = img_batch + up_noise * torch.rand(
             (img_batch.shape[0], 1, 1, 1)).to(self.device) * torch.randn_like(
                 img_batch, requires_grad=False)
+
+        img_batch = img_batch.clamp(0, 1)
 
         return img_batch
 

@@ -30,6 +30,7 @@ class SDFCLIP:
     def __init__(
         self,
         prompt: str = "a bunny rabbit mesh rendered with maya zbrush",
+        out_dir: str = "./results",
         out_img_width: int = 256,
         out_img_height: int = 256,
         use_single_cam: bool = True,
@@ -42,6 +43,8 @@ class SDFCLIP:
         self.use_single_cam = use_single_cam
         self.print_jupyter = print_jupyter
         self.save_results = save_results
+
+        self.out_dir = os.path.join(out_dir, '_'.join(self.prompt.split(" ")))
 
         self.sdf_grid_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
 
@@ -77,7 +80,6 @@ class SDFCLIP:
 
     def run(
         self,
-        out_dir: str = "./results",
         learning_rate: float = 0.01,
         image_loss_weight: float = 1 / 1000,
         sdf_loss_weight: float = 1 / 1000,
@@ -86,13 +88,11 @@ class SDFCLIP:
         num_std_res_samples: float = 3,
         max_num_iters_per_camera: int = 20,
     ):
-        out_dir = os.path.join(out_dir, '_'.join(self.prompt.split(" ")))
-
-        num_out_gen_dirs = len(glob.glob(f"{out_dir}*"))
+        num_out_gen_dirs = len(glob.glob(f"{self.out_dir}*"))
         if num_out_gen_dirs:
-            out_dir += f"-{num_out_gen_dirs}"
+            results_dir = self.out_dir + f"-{num_out_gen_dirs}"
 
-        os.makedirs(out_dir, exist_ok=True)
+        os.makedirs(results_dir, exist_ok=True)
 
         bounding_box_min_x = -2.
         bounding_box_min_y = -2.
@@ -190,7 +190,7 @@ class SDFCLIP:
             sdf_grid_res_iter = 0
             while not increase_res:
                 for cam_view_idx in range(num_cameras):
-                    prev_cam_loss = None
+                    # prev_cam_loss = None
                     for cam_iter in range(max_num_iters_per_camera):
                         image_initial = generate_image(
                             bounding_box_min_x,
@@ -262,7 +262,7 @@ class SDFCLIP:
 
                         cam_view_loss_list[cam_view_idx] = cam_view_loss
 
-                        prev_cam_loss = cam_view_loss
+                        # prev_cam_loss = cam_view_loss
 
                         global_iter += 1
 
@@ -301,7 +301,7 @@ class SDFCLIP:
                         if self.save_results:
                             torchvision.utils.save_image(
                                 image_initial.detach(),
-                                "./" + out_dir + "/" + "final_cam_" +
+                                "./" + results_dir + "/" + "final_cam_" +
                                 str(grid_res_x) + "_" + str(sdf_grid_res) +
                                 "-" + str(cam_view_idx) + ".jpg",
                                 nrow=8,
@@ -450,7 +450,7 @@ class SDFCLIP:
         #                 if not self.print_jupyter:
         #                     torchvision.utils.save_image(
         #                         image_initial.detach(),
-        #                         "./" + out_dir + "/" + "final_cam_" +
+        #                         "./" + results_dir + "/" + "final_cam_" +
         #                         str(grid_res_x) + "_" + str(cam) + "_" +
         #                         str(res_iter) + "-" + str(cam_iter) + ".jpg",
         #                         nrow=8,
@@ -533,11 +533,28 @@ class SDFCLIP:
             grid_initial = grid_initial_update.data
             grid_initial.requires_grad = True
 
-            # optimizer = torch.optim.Adam(
-            #     [grid_initial],
-            #     lr=learning_rate / 1.03,
-            #     eps=1e-8,
-            # )
+            exp_avg = optimizer.state_dict()['state'][0]['exp_avg'].clone()
+            exp_avg = torch.nn.functional.interpolate(
+                exp_avg[None, None, :],
+                size=(grid_res_x, grid_res_y, grid_res_z),
+            )[0, 0, :]
+
+            exp_avg_sq = optimizer.state_dict(
+            )['state'][0]['exp_avg_sq'].clone()
+            exp_avg_sq = torch.nn.functional.interpolate(
+                exp_avg_sq[None, None, :],
+                size=(grid_res_x, grid_res_y, grid_res_z),
+            )[0, 0, :]
+
+            optimizer = torch.optim.Adam(
+                [grid_initial],
+                lr=learning_rate,
+                eps=1e-8,
+            )
+
+            return optimizer
+            optimizer.state_dict()['state'][0]['exp_avg'] = exp_avg
+            optimizer.state_dict()['state'][0]['exp_avg_sq'] = exp_avg_sq
 
             # Double the size of the image
             if self.out_img_width < 256:
@@ -547,21 +564,70 @@ class SDFCLIP:
             # learning_rate /= 1.03
             grid_res_idx += 1
 
-        out_video_path = os.path.join(out_dir, "generation.mp4")
+        self.vis_dir = os.path.join(results_dir, "visualizations")
+        os.makedirs(self.vis_dir, exist_ok=True)
+
+        out_video_path = os.path.join(self.vis_dir, "generation.mp4")
         print(f"Generating {out_video_path}")
 
         cmd = ("ffmpeg -y "
                "-r 5 "
-               f"-pattern_type glob -i '{out_dir}/*.jpg' "
+               f"-pattern_type glob -i '{results_dir}/*.jpg' "
                "-vcodec libx264 "
                "-crf 25 "
                "-pix_fmt yuv420p "
                f"{out_video_path}")
 
-        # cmd = ("ffmpeg -r 30 -f image2 -s 512x512 -y"
-        #        f" -i {out_dir}/*.jpg"
-        #        f" -vcodec libx264 -crf 25  -pix_fmt yuv420p"
-        #        f" {out_video_path}")
+        subprocess.check_call(cmd, shell=True)
+
+        num_cameras = 26
+        camera_angle_list = [
+            torch.tensor([5 * math.cos(a), 0, 5 * math.sin(a)]).cuda()
+            for a in np.linspace(0, math.pi / 4, num_cameras)
+        ]
+
+        out_img_width = 512
+        out_img_height = 512
+
+        for cam in range(num_cameras):
+            image_initial = generate_image(
+                bounding_box_min_x,
+                bounding_box_min_y,
+                bounding_box_min_z,
+                bounding_box_max_x,
+                bounding_box_max_y,
+                bounding_box_max_z,
+                voxel_size,
+                grid_res_x,
+                grid_res_y,
+                grid_res_z,
+                out_img_width,
+                out_img_height,
+                grid_initial,
+                camera_angle_list[cam],
+            )
+
+            torchvision.utils.save_image(
+                image_initial.detach(),
+                os.path.join(self.vis_dir, f"{cam}.jpg"),
+                nrow=8,
+                padding=2,
+                normalize=False,
+                range=None,
+                scale_each=False,
+                pad_value=0,
+            )
+
+        out_video_path = os.path.join(self.vis_dir, "visualization.mp4")
+        print(f"Generating {out_video_path}")
+
+        cmd = ("ffmpeg -y "
+               "-r 5 "
+               f"-pattern_type glob -i '{self.vis_dir}/*.jpg' "
+               "-vcodec libx264 "
+               "-crf 25 "
+               "-pix_fmt yuv420p "
+               f"{out_video_path}")
 
         subprocess.check_call(cmd, shell=True)
 

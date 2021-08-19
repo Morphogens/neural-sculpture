@@ -81,51 +81,16 @@ class SDFCLIP:
 
         return image_loss, sdf_loss
 
-    def run(
+    def get_camera_angle_list(
         self,
-        learning_rate: float = 0.01,
-        image_loss_weight: float = 1 / 1000,
-        sdf_loss_weight: float = 1 / 1000,
-        lp_loss_weight: float = 1 / 1000,
-        max_std_res_loss: float = 0.7,
-        num_std_res_samples: float = 2,
-        max_num_iters_per_camera: int = 16,
+        num_cameras=1,
     ):
-        num_out_gen_dirs = len(glob.glob(f"{self.out_dir}*"))
-        if num_out_gen_dirs:
-            results_dir = self.out_dir + f"-{num_out_gen_dirs}"
-        else:
-            results_dir = self.out_dir
-
-        os.makedirs(results_dir, exist_ok=True)
-
-        bounding_box_min_x = -2.
-        bounding_box_min_y = -2.
-        bounding_box_min_z = -2.
-        bounding_box_max_x = 2.
-        bounding_box_max_y = 2.
-        bounding_box_max_z = 2.
-
-        grid_res_idx = 0
-        grid_res_x = grid_res_y = grid_res_z = self.sdf_grid_res_list[
-            grid_res_idx]
-        voxel_size = Tensor([4. / (grid_res_x - 1)])
-
-        grid_initial = grid_construction_sphere_big(
-            grid_res_x,
-            bounding_box_min_x,
-            bounding_box_max_x,
-        )
-        grid_initial.requires_grad = True
-
-        if self.use_single_cam:
-            num_cameras = 1
+        if num_cameras == 1:
             camera_angle_list = [Tensor([0, 0, 5])]
         else:
-            num_cameras = 8
             camera_angle_list = [
                 Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
-                for a in np.linspace(0, math.pi / 2, num_cameras)
+                for a in np.linspace(0, math.pi / 4, num_cameras)
             ]
             # camera_angle_list = [
             #     Tensor([0, 0, 5]),  # 0
@@ -164,6 +129,45 @@ class SDFCLIP:
             # ]
             # num_cameras = len(camera_angle_list)
 
+        return camera_angle_list
+
+    def run(
+        self,
+        learning_rate: float = 0.01,
+        image_loss_weight: float = 1 / 1000,
+        sdf_loss_weight: float = 1 / 1000,
+        lp_loss_weight: float = 1 / 1000,
+        max_std_res_loss: float = 0.7,
+        num_std_res_samples: float = 2,
+        max_num_iters_per_camera: int = 16,
+    ):
+        num_out_gen_dirs = len(glob.glob(f"{self.out_dir}*"))
+        if num_out_gen_dirs:
+            results_dir = self.out_dir + f"-{num_out_gen_dirs}"
+        else:
+            results_dir = self.out_dir
+
+        os.makedirs(results_dir, exist_ok=True)
+
+        bounding_box_min_x = -2.
+        bounding_box_min_y = -2.
+        bounding_box_min_z = -2.
+        bounding_box_max_x = 2.
+        bounding_box_max_y = 2.
+        bounding_box_max_z = 2.
+
+        grid_res_idx = 0
+        grid_res_x = grid_res_y = grid_res_z = self.sdf_grid_res_list[
+            grid_res_idx]
+        voxel_size = Tensor([4. / (grid_res_x - 1)])
+
+        grid_initial = grid_construction_sphere_big(
+            grid_res_x,
+            bounding_box_min_x,
+            bounding_box_max_x,
+        )
+        grid_initial.requires_grad = True
+
         optimizer = torch.optim.Adam(
             [grid_initial],
             lr=learning_rate,
@@ -184,13 +188,22 @@ class SDFCLIP:
         #     smaller than a given tolerance or the step length is too small.
 
         global_iter = 0
-        cam_view_loss_list = [None] * num_cameras
-
-        for sdf_grid_res in self.sdf_grid_res_list:
+        for grid_res_idx, sdf_grid_res in enumerate(self.sdf_grid_res_list):
             res_loss_list = []
             std_res_loss = None
             avg_cam_view_loss = None
             increase_res = False
+
+            if self.single_camera:
+                num_cameras = 1
+            else:
+                max_num_cameras = 8
+                num_cameras = min((grid_res_idx + 1)**2, max_num_cameras)
+
+            print(f"NUM CAMERAS {num_cameras}")
+
+            cam_view_loss_list = [None] * num_cameras
+            camera_angle_list = self.get_camera_angle_list(num_cameras)
 
             sdf_grid_res_iter = 0
             while not increase_res:

@@ -12,5 +12,6 @@ dist
 results
 og_results
 experiments
+runs
 
 .ipynb_checkpoints

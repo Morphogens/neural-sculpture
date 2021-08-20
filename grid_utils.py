@@ -155,17 +155,19 @@ def get_intersection_normal(
 
 #     return grid
 
-# def grid_construction_sphere_small(
-#     grid_res,
-#     bounding_box_min,
-#     bounding_box_max,
-#     device='cuda',
-# ):
 
-#     # Construct the sdf grid for a sphere with radius 1
-#     linear_space = torch.linspace(bounding_box_min, bounding_box_max, grid_res)
-#     x_dim = linear_space.view(-1, 1).repeat(grid_res, 1, grid_res)
-#     y_dim = linear_space.view(1, -1).repeat(grid_res, grid_res, 1)
-#     z_dim = linear_space.view(-1, 1, 1).repeat(1, grid_res, grid_res)
-#     grid = torch.sqrt(x_dim * x_dim + y_dim * y_dim + z_dim * z_dim) - 1
-#     return grid.to(device)
+def grid_construction_sphere_small(
+    grid_res,
+    bounding_box_min,
+    bounding_box_max,
+    device='cuda',
+):
+
+    # Construct the sdf grid for a sphere with radius 1
+    linear_space = torch.linspace(bounding_box_min, bounding_box_max, grid_res)
+    x_dim = linear_space.view(-1, 1).repeat(grid_res, 1, grid_res)
+    y_dim = linear_space.view(1, -1).repeat(grid_res, grid_res, 1)
+    z_dim = linear_space.view(-1, 1, 1).repeat(1, grid_res, grid_res)
+    grid = torch.sqrt(x_dim * x_dim + y_dim * y_dim + z_dim * z_dim) - 1
+    grid += torch.rand_like(grid)
+    return grid.to(device)

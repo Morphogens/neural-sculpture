@@ -13,7 +13,7 @@ from IPython.display import display, clear_output
 from PIL import Image
 
 from clip_loss import CLIPLoss
-from grid_utils import grid_construction_sphere_big, get_grid_normal
+from grid_utils import grid_construction_sphere_big, get_grid_normal, grid_construction_sphere_small
 from sdf_utils import calculate_sdf_value, compute_intersection_pos, generate_image
 
 # NOTE: speed up
@@ -33,6 +33,7 @@ class SDFCLIP:
     def __init__(
         self,
         prompt: str = "a bunny rabbit mesh rendered with maya zbrush",
+        # prompt: str = "a cube mesh rendered with maya zbrush",
         out_dir: str = "./results",
         out_img_width: int = 256,
         out_img_height: int = 256,
@@ -49,7 +50,8 @@ class SDFCLIP:
 
         self.out_dir = os.path.join(out_dir, '_'.join(self.prompt.split(" ")))
 
-        self.sdf_grid_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
+        # self.sdf_grid_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
+        self.sdf_grid_res_list = [8, 12, 16, 24, 32, 40]
 
         self.clip_loss = CLIPLoss(
             text_target=prompt,
@@ -84,13 +86,14 @@ class SDFCLIP:
     def get_camera_angle_list(
         self,
         num_cameras=1,
+        mapping_view=math.pi / 4,
     ):
         if num_cameras == 1:
             camera_angle_list = [Tensor([0, 0, 5])]
         else:
             camera_angle_list = [
                 Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
-                for a in np.linspace(0, math.pi / 4, num_cameras)
+                for a in np.linspace(0, mapping_view, num_cameras)
             ]
             # camera_angle_list = [
             #     Tensor([0, 0, 5]),  # 0
@@ -133,13 +136,13 @@ class SDFCLIP:
 
     def run(
         self,
-        learning_rate: float = 0.01,
+        learning_rate: float = 0.006,
         image_loss_weight: float = 1 / 1000,
         sdf_loss_weight: float = 1 / 1000,
         lp_loss_weight: float = 1 / 1000,
-        max_std_res_loss: float = 0.7,
-        num_std_res_samples: float = 2,
-        max_num_iters_per_camera: int = 16,
+        max_std_res_loss: float = 0.6,
+        num_std_res_samples: float = 4,
+        max_num_iters_per_camera: int = 4,
     ):
         num_out_gen_dirs = len(glob.glob(f"{self.out_dir}*"))
         if num_out_gen_dirs:
@@ -161,7 +164,7 @@ class SDFCLIP:
             grid_res_idx]
         voxel_size = Tensor([4. / (grid_res_x - 1)])
 
-        grid_initial = grid_construction_sphere_big(
+        grid_initial = grid_construction_sphere_small(
             grid_res_x,
             bounding_box_min_x,
             bounding_box_max_x,
@@ -194,16 +197,21 @@ class SDFCLIP:
             avg_cam_view_loss = None
             increase_res = False
 
-            if self.single_camera:
+            if self.use_single_cam:
                 num_cameras = 1
             else:
-                max_num_cameras = 8
-                num_cameras = min((grid_res_idx + 1)**2, max_num_cameras)
+                max_num_cameras = 16
+                num_cameras = min(((grid_res_idx + 1) * 8), max_num_cameras)
+                mapping_view = min(2 * math.pi,
+                                   (grid_res_idx + 1) * math.pi / 2)
 
             print(f"NUM CAMERAS {num_cameras}")
 
             cam_view_loss_list = [None] * num_cameras
-            camera_angle_list = self.get_camera_angle_list(num_cameras)
+            camera_angle_list = self.get_camera_angle_list(
+                num_cameras,
+                mapping_view,
+            )
 
             sdf_grid_res_iter = 0
             while not increase_res:
@@ -483,7 +491,7 @@ class SDFCLIP:
         print(f"Generating {out_video_path}")
 
         cmd = ("ffmpeg -y "
-               "-r 5 "
+               "-r 16 "
                f"-pattern_type glob -i '{results_dir}/*.jpg' "
                "-vcodec libx264 "
                "-crf 25 "
@@ -534,7 +542,7 @@ class SDFCLIP:
         print(f"Generating {out_video_path}")
 
         cmd = ("ffmpeg -y "
-               "-r 5 "
+               "-r 16 "
                f"-pattern_type glob -i '{self.vis_dir}/*.jpg' "
                "-vcodec libx264 "
                "-crf 25 "

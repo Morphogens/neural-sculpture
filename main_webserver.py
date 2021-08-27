@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import trimesh
 import asyncio
 import fastapi
+import json
 from fastapi import FastAPI, WebSocket
 app = fastapi.FastAPI()
 
@@ -37,13 +38,36 @@ async def startup_event():
     print("XXX init!", os.getpid())
     async_result = AsyncResult()
 
+class UserSession:
+    def __init__(self, websocket: WebSocket):
+        self.websocket = websocket
+
+    async def run(self):
+        await asyncio.gather(
+            self.listen_loop(),
+            self.send_loop()
+        )
+
+    async def listen_loop(self):
+        while True:
+            cmd = await self.websocket.receive_text()
+            cmd = json.loads(cmd)
+            print("XXX Got cmd", cmd)
+
+    async def send_loop(self):
+        while True:
+            model = await async_result.wait()
+            print(f"XXX WS sending model, {len(model)//1024}kb")
+            await self.websocket.send_text(model)
+            # await asyncio.sleep(1)
+            # await self.websocket.send_text("HI")
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
-        model = await async_result.wait()
-        await websocket.send_text(model)
-        await asyncio.sleep(1)
+    us = UserSession(websocket)
+    await us.run()
 
 import os
 def process_sdf(sdf: np.ndarray):
@@ -52,17 +76,18 @@ def process_sdf(sdf: np.ndarray):
     start = datetime.now()
     vertices, faces, normals, _ = skimage.measure.marching_cubes(sdf, level=0)
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_normals=normals)
-    obj = trimesh.exchange.dae.export_collada(mesh)
+    obj = trimesh.exchange.obj.export_obj(mesh)
     dur = datetime.now() - start
     if async_result:
         async_result.set(obj)
+        print("XXX Posted message")
     else:
         print("XXX NO NOTIFIER???")
     print("Took", dur.total_seconds())
 
 #%%
 def on_update(mesh: torch.Tensor):
-    print("XXX HI!!!")
+    print("XXX enqueuing preprocess")
     polygon_worker.submit(process_sdf, mesh.detach().cpu().numpy())
 
 # sdf loss --> regulates that the shape is smooth

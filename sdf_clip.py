@@ -40,6 +40,7 @@ class SDFCLIP:
         use_single_cam: bool = False,
         print_jupyter: bool = False,
         save_results: bool = True,
+        on_update: Callable[[Tensor], None]=None,
     ):
         self.prompt = prompt
         self.out_img_width = out_img_width
@@ -47,6 +48,7 @@ class SDFCLIP:
         self.use_single_cam = use_single_cam
         self.print_jupyter = print_jupyter
         self.save_results = save_results
+        self.on_update = on_update
 
         self.out_dir = os.path.join(out_dir, '_'.join(self.prompt.split(" ")))
 
@@ -289,6 +291,8 @@ class SDFCLIP:
                         cam_view_loss_list[cam_view_idx] = cam_view_loss
 
                         # prev_cam_loss = cam_view_loss
+                        if self.on_update:
+                            self.on_update(grid_initial)
 
                         global_iter += 1
 

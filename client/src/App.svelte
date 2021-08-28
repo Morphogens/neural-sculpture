@@ -1,10 +1,8 @@
 <script lang="ts">
+import { onMount } from 'svelte'
 import * as THREE from 'three'
 import { debounce } from 'ts-debounce'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; 
-// import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader'
-// import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-// import bunnyObj from './assets/bunny.obj?raw'
 import { socket, socketOpen } from './stores/socket'
 import { mesh } from './stores/mesh'
 
@@ -49,7 +47,7 @@ mesh.subscribe($mesh => {
         scene.remove(lastMesh)
     }
     if ($mesh) {
-        console.log('Got mesh', $mesh)
+        console.log('Got new mesh')
         scene.add($mesh)
         lastMesh = $mesh
     }
@@ -100,12 +98,22 @@ function raycast() {
 
 loop();
 
+let clip_input:HTMLInputElement
+
+onMount(() => {
+    clip_input.onchange = () => {
+        console.log('New text value', clip_input.value)
+        socket.send(JSON.stringify({
+            message: 'prompt',
+            data: clip_input.value
+        }))
+    }
+})
+
 </script>
 
-<div class='clip-input-form'>
-    <form>
-        <label type='text' name="fname">Clip Prompt:</label>
-    </form>
+<div id='container'>
+    <input type="text" value="Bunny" bind:this={clip_input}>
 </div>
 
 <style>
@@ -113,12 +121,13 @@ loop();
         margin: 0px;
         padding: 0px;
     }
-    .clip-input-form {
+    #container {
+        width: 200px;
         position: absolute;
     }
         
     input[type=text] {
-        width: 100%;
+        /* width: 100%; */
         padding: 12px 20px;
         margin: 8px 0;
         box-sizing: border-box;

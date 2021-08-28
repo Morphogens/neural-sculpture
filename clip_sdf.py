@@ -1,3 +1,10 @@
+USE_WANDB = False
+
+if USE_WANDB:
+    import wandb
+else:
+    import wandb_stub as wandb
+
 import os
 import math
 import glob
@@ -10,7 +17,6 @@ import torch
 import torch.nn.functional as F
 import torchvision
 import numpy as np
-import wandb
 from torch.utils.tensorboard import SummaryWriter
 from IPython.display import display, clear_output
 from PIL import Image
@@ -244,6 +250,7 @@ def clip_sdf_optimization(
     optim_config: SimpleNamespace,
     experiment_name: str = None,
     sdf_grid_res_list: List[int] = [8, 16, 24, 32, 40, 48, 56, 64],
+    on_update: Callable[[Tensor], None]=None
 ):
     """
     Optimize a 3D SDF grid given a prompt. The process is:
@@ -371,6 +378,8 @@ def clip_sdf_optimization(
                         optimizer.zero_grad()
                         cam_view_loss.backward()
                         optimizer.step()
+                        if on_update:
+                            on_update(grid_initial)
 
                         cam_view_loss = 0
 

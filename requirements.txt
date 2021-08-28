@@ -1,0 +1,8 @@
+# web
+fastapi==0.63.0
+uvicorn==0.13.4
+
+# mesh
+trimesh==3.9.29
+pycollada==0.7.1
+scikit-image

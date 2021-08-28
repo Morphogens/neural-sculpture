@@ -1,3 +1,10 @@
+USE_WANDB = False
+
+if USE_WANDB:
+    import wandb
+else:
+    import wandb_stub as wandb
+
 import os
 import math
 import glob

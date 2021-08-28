@@ -19,6 +19,7 @@
     "vite": "^2.5.1"
   },
   "dependencies": {
-    "three": "^0.132.2"
+    "three": "^0.132.2",
+    "ts-debounce": "^3.0.0"
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
-import * as THREE from 'three';
+import * as THREE from 'three'
+import { debounce } from 'ts-debounce'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; 
 // import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader'
 // import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
@@ -11,6 +12,7 @@ socketOpen.subscribe(console.log)
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+const lastCamera = new THREE.Vector3()
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -59,13 +61,19 @@ function loop(): void {
     renderer.render(scene, camera);
 }
 
+const sendNewCamera = debounce(() => {
+    console.log('new camera')
+    socket.send(JSON.stringify({
+        message: 'camera',
+        data: camera.position.toArray()
+    }))
+}, 200)
+
 function update(): void {
     // raycast()
-    if ($socketOpen) {
-        socket.send(JSON.stringify({
-            message: 'camera',
-            data: camera.position.toArray()
-        }))
+    if ($socketOpen && !camera.position.equals(lastCamera)) {
+        sendNewCamera()
+        lastCamera.copy(camera.position)
     }
     controls.update()
 }
@@ -94,16 +102,25 @@ loop();
 
 </script>
 
-<!-- <div>
+<div class='clip-input-form'>
     <form>
-        <label for="fname">First name:</label>
+        <label type='text' name="fname">Clip Prompt:</label>
     </form>
-</div> -->
+</div>
 
 <style>
     :global(body) {
         margin: 0px;
         padding: 0px;
     }
+    .clip-input-form {
+        position: absolute;
+    }
         
+    input[type=text] {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        box-sizing: border-box;
+    }
 </style>

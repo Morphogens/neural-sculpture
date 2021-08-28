@@ -1,0 +1,944 @@
+
+WARNING: using `sdfdiff` angles. Num cameras is 26
+/opt/conda/envs/neural-sculpture/lib/python3.7/site-packages/torch/nn/functional.py:3253: UserWarning: nn.functional.upsample_bilinear is deprecated. Use nn.functional.interpolate instead.
+  warnings.warn("nn.functional.upsample_bilinear is deprecated. Use nn.functional.interpolate instead.")
+image loss:  tensor(-3.1895, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.3140, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.9099, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.2051, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.3022, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.8586, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1992, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2907, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.8104, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1523, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2798, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.7652, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1895, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2703, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.7227, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1426, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2615, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.6827, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1211, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2530, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.6450, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+/opt/conda/envs/neural-sculpture/lib/python3.7/site-packages/torch/nn/functional.py:3063: UserWarning: Default upsampling behavior when mode=trilinear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
+  "See the documentation of nn.Upsample for details.".format(mode))
+image loss:  tensor(-3.1289, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2447, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.6096, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1113, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(0.2369, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(512)
+lp loss:  tensor(0.5764, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(512)
+loss:  0
+tolerance: -1.0
+sdf grid res: 8  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-2.6074, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.9365, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1514, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-2.6309, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.7632, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1409, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-2.8164, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.6093, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1364, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-2.9844, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.4753, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1360, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1152, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.3566, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1376, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1250, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.2535, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1409, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1445, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.1628, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1453, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.1738, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.0842, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1501, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.2383, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(1.0170, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(4096)
+lp loss:  tensor(0.1546, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(4096)
+loss:  0
+tolerance: -0.5
+sdf grid res: 16  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.0449, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.8696, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.0784, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.3242, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.4599, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.0884, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.3848, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.1154, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1010, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.4375, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.8427, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1146, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.5000, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.6298, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1281, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.5332, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.4494, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1406, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.6230, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.2874, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1516, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.6543, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.1481, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1612, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.7207, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(2.0214, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(13824)
+lp loss:  tensor(0.1687, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(13824)
+loss:  0
+tolerance: -0.3333333333333333
+sdf grid res: 24  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.3047, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(5.2283, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.0773, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.5781, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(5.2298, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1112, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.7930, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(4.7050, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1252, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.9551, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(4.3096, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1361, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.0156, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(4.0363, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1461, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.0898, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.8100, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1552, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.1484, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.6006, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1630, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.2109, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.4055, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1695, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.2227, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(3.2486, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(32768)
+lp loss:  tensor(0.1752, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(32768)
+loss:  0
+tolerance: -0.25
+sdf grid res: 32  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.5195, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(6.8396, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.0774, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.8301, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(8.5274, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1400, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.9844, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(7.5550, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1554, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.0430, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(6.7768, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1616, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.1680, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(6.4526, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1683, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.3086, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(6.1315, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1742, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.3633, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(5.8224, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1789, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.3359, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(5.5423, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1830, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.5312, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(5.3018, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(64000)
+lp loss:  tensor(0.1867, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(64000)
+loss:  0
+tolerance: -0.2
+sdf grid res: 40  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.9434, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(9.1981, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.0794, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.8809, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(14.2839, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1725, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 1  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.8555, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(12.5211, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1880, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 2  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-3.9688, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(10.7857, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1862, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 3  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.0859, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(10.2538, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1876, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 4  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.1680, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(9.8003, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1904, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 5  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.2695, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(9.2685, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1930, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 6  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.4883, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(8.7772, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1953, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 7  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.5977, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(8.3469, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(110592)
+lp loss:  tensor(0.1972, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(110592)
+loss:  0
+tolerance: -0.16666666666666666
+sdf grid res: 48  - iteration: 8  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.3125, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(12.3716, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.0804, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 0  -  cam view idx 6  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.5156, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(22.7404, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2032, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 1  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.6719, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(21.3583, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2344, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 2  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.7188, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(18.2781, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2310, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 3  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8242, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(16.0527, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2232, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 4  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8750, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(15.1509, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2181, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 5  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8867, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(14.4600, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2157, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 6  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.9062, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(13.7029, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2151, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 7  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.9219, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(13.0207, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(175616)
+lp loss:  tensor(0.2150, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(175616)
+loss:  0
+tolerance: -0.14285714285714285
+sdf grid res: 56  - iteration: 8  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8125, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(16.6883, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.0827, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 0  -  cam view idx 4  -  cam iters: 2
+image loss:  tensor(-4.5781, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(33.7663, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2335, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 0  -  cam view idx 4  -  cam iters: 6
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8203, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(31.2336, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2634, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 1  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.7695, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(25.0642, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2438, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 2  -  cam view idx 4  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.6445, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(22.3158, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2306, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 3  -  cam view idx 2  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.6719, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(23.8191, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2403, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 4  -  cam view idx 2  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.6797, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(24.4437, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2529, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 5  -  cam view idx 2  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.7734, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(23.7222, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2606, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 6  -  cam view idx 2  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.7773, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(22.2140, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2625, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 7  -  cam view idx 2  -  cam iters: 2
+WARNING: using `sdfdiff` angles. Num cameras is 26
+image loss:  tensor(-4.8008, device='cuda:0', dtype=torch.float16, grad_fn=<MulBackward0>)
+image weight:  tensor(65536)
+sdf loss:  tensor(20.4563, device='cuda:0', grad_fn=<MulBackward0>)
+sdf weight:  tensor(262144)
+lp loss:  tensor(0.2605, device='cuda:0', grad_fn=<MulBackward0>)
+lp weight:  tensor(262144)
+loss:  0
+tolerance: -0.125
+sdf grid res: 64  - iteration: 8  -  cam view idx 2  -  cam iters: 2
+ffmpeg version 4.1.6-1~deb10u1 Copyright (c) 2000-2020 the FFmpeg developers
+  built with gcc 8 (Debian 8.3.0-6)
+  configuration: --prefix=/usr --extra-version='1~deb10u1' --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --enable-avresample --disable-filter=resample --enable-avisynth --enable-gnutls --enable-ladspa --enable-libaom --enable-libass --enable-libbluray --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libgme --enable-libgsm --enable-libjack --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-libpulse --enable-librsvg --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libssh --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwavpack --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzmq --enable-libzvbi --enable-lv2 --enable-omx --enable-openal --enable-opengl --enable-sdl2 --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-libx264 --enable-shared
+  libavutil      56. 22.100 / 56. 22.100
+  libavcodec     58. 35.100 / 58. 35.100
+  libavformat    58. 20.100 / 58. 20.100
+  libavdevice    58.  5.100 / 58.  5.100
+  libavfilter     7. 40.101 /  7. 40.101
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  3.100 /  5.  3.100
+  libswresample   3.  3.100 /  3.  3.100
+  libpostproc    55.  3.100 / 55.  3.100
+Input #0, image2, from 'experiments/test-25/*.jpg':
+  Duration: 00:00:11.00, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: mjpeg, yuvj420p(pc, bt470bg/unknown/unknown), 256x256 [SAR 1:1 DAR 1:1], 25 fps, 25 tbr, 25 tbn, 25 tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[swscaler @ 0x561ce2a4e1c0] deprecated pixel format used, make sure you did set range correctly
+[libx264 @ 0x561ce29c2cc0] using SAR=1/1
+[libx264 @ 0x561ce29c2cc0] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 0x561ce29c2cc0] profile High, level 1.2
+[libx264 @ 0x561ce29c2cc0] 264 - core 155 r2917 0a84d98 - H.264/MPEG-4 AVC codec - Copyleft 2003-2018 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=16 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=25.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'experiments/test-25/visualizations/generation.mp4':
+  Metadata:
+    encoder         : Lavf58.20.100
+    Stream #0:0: Video: h264 (libx264) (avc1 / 0x31637661), yuv420p, 256x256 [SAR 1:1 DAR 1:1], q=-1--1, 16 fps, 16384 tbn, 16 tbc
+    Metadata:
+      encoder         : Lavc58.35.100 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=  275 fps=0.0 q=-1.0 Lsize=     176kB time=00:00:17.00 bitrate=  84.9kbits/s speed=41.7x
+video:173kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.885706%
+[libx264 @ 0x561ce29c2cc0] frame I:9     Avg QP:11.67  size:   750
+[libx264 @ 0x561ce29c2cc0] frame P:169   Avg QP:23.98  size:   685
+[libx264 @ 0x561ce29c2cc0] frame B:97    Avg QP:26.01  size:   555
+[libx264 @ 0x561ce29c2cc0] consecutive B-frames: 45.1% 21.1%  7.6% 26.2%
+[libx264 @ 0x561ce29c2cc0] mb I  I16..4: 68.7% 28.1%  3.2%
+[libx264 @ 0x561ce29c2cc0] mb P  I16..4:  1.4% 13.1%  3.7%  P16..4:  2.6%  1.3%  0.3%  0.0%  0.0%    skip:77.6%
+[libx264 @ 0x561ce29c2cc0] mb B  I16..4:  1.0%  8.4%  2.8%  B16..8:  7.3%  3.1%  0.3%  direct: 0.5%  skip:76.6%  L0:56.5% L1:40.7% BI: 2.8%
+[libx264 @ 0x561ce29c2cc0] 8x8 transform intra:63.6% inter:61.5%
+[libx264 @ 0x561ce29c2cc0] coded y,uvDC,uvAC intra: 50.0% 0.0% 0.0% inter: 2.3% 0.0% 0.0%
+[libx264 @ 0x561ce29c2cc0] i16 v,h,dc,p: 77%  7%  7%  9%
+[libx264 @ 0x561ce29c2cc0] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 19% 16% 22%  6%  7%  8%  7%  8%  7%
+[libx264 @ 0x561ce29c2cc0] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 19% 18% 21%  6%  9%  8%  8%  6%  5%
+[libx264 @ 0x561ce29c2cc0] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0x561ce29c2cc0] Weighted P-Frames: Y:12.4% UV:0.0%
+[libx264 @ 0x561ce29c2cc0] ref P L0: 49.7%  2.4% 23.8% 21.8%  2.3%
+[libx264 @ 0x561ce29c2cc0] ref B L0: 61.6% 33.2%  5.2%
+[libx264 @ 0x561ce29c2cc0] ref B L1: 89.9% 10.1%
+[libx264 @ 0x561ce29c2cc0] kb/s:82.10
+Generating experiments/test-25/visualizations/generation.mp4
+ffmpeg version 4.1.6-1~deb10u1 Copyright (c) 2000-2020 the FFmpeg developers
+  built with gcc 8 (Debian 8.3.0-6)
+  configuration: --prefix=/usr --extra-version='1~deb10u1' --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --enable-avresample --disable-filter=resample --enable-avisynth --enable-gnutls --enable-ladspa --enable-libaom --enable-libass --enable-libbluray --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libgme --enable-libgsm --enable-libjack --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-libpulse --enable-librsvg --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libssh --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwavpack --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzmq --enable-libzvbi --enable-lv2 --enable-omx --enable-openal --enable-opengl --enable-sdl2 --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-libx264 --enable-shared
+  libavutil      56. 22.100 / 56. 22.100
+  libavcodec     58. 35.100 / 58. 35.100
+  libavformat    58. 20.100 / 58. 20.100
+  libavdevice    58.  5.100 / 58.  5.100
+  libavfilter     7. 40.101 /  7. 40.101
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  3.100 /  5.  3.100
+  libswresample   3.  3.100 /  3.  3.100
+  libpostproc    55.  3.100 / 55.  3.100
+Input #0, image2, from 'experiments/test-25/visualizations/*.jpg':
+  Duration: 00:00:05.12, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: mjpeg, yuvj420p(pc, bt470bg/unknown/unknown), 256x256 [SAR 1:1 DAR 1:1], 25 fps, 25 tbr, 25 tbn, 25 tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[swscaler @ 0x558e045b6040] deprecated pixel format used, make sure you did set range correctly
+[libx264 @ 0x558e0450f840] using SAR=1/1
+[libx264 @ 0x558e0450f840] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 0x558e0450f840] profile High, level 1.2
+[libx264 @ 0x558e0450f840] 264 - core 155 r2917 0a84d98 - H.264/MPEG-4 AVC codec - Copyleft 2003-2018 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=16 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=25.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'experiments/test-25/visualizations/visualization.mp4':
+  Metadata:
+    encoder         : Lavf58.20.100
+    Stream #0:0: Video: h264 (libx264) (avc1 / 0x31637661), yuv420p, 256x256 [SAR 1:1 DAR 1:1], q=-1--1, 16 fps, 16384 tbn, 16 tbc
+    Metadata:
+      encoder         : Lavc58.35.100 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=  128 fps=0.0 q=-1.0 Lsize=      70kB time=00:00:07.81 bitrate=  73.1kbits/s speed=48.2x
+video:68kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 3.256137%
+[libx264 @ 0x558e0450f840] frame I:1     Avg QP:13.73  size:  1290
+[libx264 @ 0x558e0450f840] frame P:69    Avg QP:23.25  size:   768
+[libx264 @ 0x558e0450f840] frame B:58    Avg QP:26.08  size:   244
+[libx264 @ 0x558e0450f840] consecutive B-frames: 21.9% 48.4% 14.1% 15.6%
+[libx264 @ 0x558e0450f840] mb I  I16..4: 67.2% 29.7%  3.1%
+[libx264 @ 0x558e0450f840] mb P  I16..4:  0.3%  2.5%  0.4%  P16..4:  7.2%  6.4%  3.5%  0.0%  0.0%    skip:79.8%
+[libx264 @ 0x558e0450f840] mb B  I16..4:  0.5%  0.5%  0.0%  B16..8:  8.9%  2.5%  0.8%  direct: 1.4%  skip:85.4%  L0:23.8% L1:33.1% BI:43.1%
+[libx264 @ 0x558e0450f840] 8x8 transform intra:61.4% inter:47.5%
+[libx264 @ 0x558e0450f840] coded y,uvDC,uvAC intra: 23.9% 0.0% 0.0% inter: 6.0% 0.0% 0.0%
+[libx264 @ 0x558e0450f840] i16 v,h,dc,p: 79% 13%  9%  0%
+[libx264 @ 0x558e0450f840] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 10% 12% 56%  3%  4%  4%  3%  3%  3%
+[libx264 @ 0x558e0450f840] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 13% 11% 23%  8%  9% 10%  8%  9%  8%
+[libx264 @ 0x558e0450f840] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0x558e0450f840] Weighted P-Frames: Y:14.5% UV:0.0%
+[libx264 @ 0x558e0450f840] ref P L0: 75.5% 17.0%  5.6%  1.7%  0.2%
+[libx264 @ 0x558e0450f840] ref B L0: 92.5%  6.7%  0.8%
+[libx264 @ 0x558e0450f840] ref B L1: 99.2%  0.8%
+[libx264 @ 0x558e0450f840] kb/s:68.44
+Generating experiments/test-25/visualizations/visualization.mp4
+----- END -----
+ffmpeg version 4.1.6-1~deb10u1 Copyright (c) 2000-2020 the FFmpeg developers
+  built with gcc 8 (Debian 8.3.0-6)
+  configuration: --prefix=/usr --extra-version='1~deb10u1' --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --enable-avresample --disable-filter=resample --enable-avisynth --enable-gnutls --enable-ladspa --enable-libaom --enable-libass --enable-libbluray --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libgme --enable-libgsm --enable-libjack --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-libpulse --enable-librsvg --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libssh --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwavpack --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzmq --enable-libzvbi --enable-lv2 --enable-omx --enable-openal --enable-opengl --enable-sdl2 --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-libx264 --enable-shared
+  libavutil      56. 22.100 / 56. 22.100
+  libavcodec     58. 35.100 / 58. 35.100
+  libavformat    58. 20.100 / 58. 20.100
+  libavdevice    58.  5.100 / 58.  5.100
+  libavfilter     7. 40.101 /  7. 40.101
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  3.100 /  5.  3.100
+  libswresample   3.  3.100 /  3.  3.100
+  libpostproc    55.  3.100 / 55.  3.100
+Input #0, image2, from 'experiments/test-26/*.jpg':
+  Duration: 00:00:02.92, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: mjpeg, yuvj420p(pc, bt470bg/unknown/unknown), 256x256 [SAR 1:1 DAR 1:1], 25 fps, 25 tbr, 25 tbn, 25 tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[swscaler @ 0x564e35b47b40] deprecated pixel format used, make sure you did set range correctly
+[libx264 @ 0x564e35ae1480] using SAR=1/1
+[libx264 @ 0x564e35ae1480] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 0x564e35ae1480] profile High, level 1.2
+[libx264 @ 0x564e35ae1480] 264 - core 155 r2917 0a84d98 - H.264/MPEG-4 AVC codec - Copyleft 2003-2018 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=16 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=25.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'experiments/test-26/visualizations/generation.mp4':
+  Metadata:
+    encoder         : Lavf58.20.100
+    Stream #0:0: Video: h264 (libx264) (avc1 / 0x31637661), yuv420p, 256x256 [SAR 1:1 DAR 1:1], q=-1--1, 16 fps, 16384 tbn, 16 tbc
+    Metadata:
+      encoder         : Lavc58.35.100 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=   73 fps=0.0 q=-1.0 Lsize=      15kB time=00:00:04.37 bitrate=  27.3kbits/s speed=51.7x
+video:13kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 10.950260%
+[libx264 @ 0x564e35ae1480] frame I:2     Avg QP:13.64  size:   809
+[libx264 @ 0x564e35ae1480] frame P:44    Avg QP:20.10  size:   211
+[libx264 @ 0x564e35ae1480] frame B:27    Avg QP:19.02  size:    70
+[libx264 @ 0x564e35ae1480] consecutive B-frames: 49.3%  0.0% 12.3% 38.4%
+[libx264 @ 0x564e35ae1480] mb I  I16..4: 53.9% 45.7%  0.4%
+[libx264 @ 0x564e35ae1480] mb P  I16..4:  0.3%  1.2%  0.1%  P16..4:  5.6%  2.8%  1.2%  0.0%  0.0%    skip:88.9%
+[libx264 @ 0x564e35ae1480] mb B  I16..4:  0.5%  0.2%  0.0%  B16..8:  7.5%  1.0%  0.1%  direct: 0.1%  skip:90.6%  L0:42.8% L1:52.3% BI: 4.9%
+[libx264 @ 0x564e35ae1480] 8x8 transform intra:51.5% inter:73.4%
+[libx264 @ 0x564e35ae1480] coded y,uvDC,uvAC intra: 17.9% 0.0% 0.0% inter: 2.0% 0.0% 0.0%
+[libx264 @ 0x564e35ae1480] i16 v,h,dc,p: 77%  8% 12%  3%
+[libx264 @ 0x564e35ae1480] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 18% 18% 40%  3%  3%  7%  4%  3%  3%
+[libx264 @ 0x564e35ae1480] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu:  8%  2% 44%  4% 18% 15%  4%  2%  2%
+[libx264 @ 0x564e35ae1480] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0x564e35ae1480] Weighted P-Frames: Y:11.4% UV:0.0%
+[libx264 @ 0x564e35ae1480] ref P L0: 76.3% 13.5%  7.3%  1.9%  1.0%
+[libx264 @ 0x564e35ae1480] ref B L0: 85.9% 11.7%  2.4%
+[libx264 @ 0x564e35ae1480] ref B L1: 96.9%  3.1%
+[libx264 @ 0x564e35ae1480] kb/s:22.41
+Generating experiments/test-26/visualizations/generation.mp4
+ffmpeg version 4.1.6-1~deb10u1 Copyright (c) 2000-2020 the FFmpeg developers
+  built with gcc 8 (Debian 8.3.0-6)
+  configuration: --prefix=/usr --extra-version='1~deb10u1' --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --enable-avresample --disable-filter=resample --enable-avisynth --enable-gnutls --enable-ladspa --enable-libaom --enable-libass --enable-libbluray --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libgme --enable-libgsm --enable-libjack --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-libpulse --enable-librsvg --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libssh --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwavpack --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzmq --enable-libzvbi --enable-lv2 --enable-omx --enable-openal --enable-opengl --enable-sdl2 --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-libx264 --enable-shared
+  libavutil      56. 22.100 / 56. 22.100
+  libavcodec     58. 35.100 / 58. 35.100
+  libavformat    58. 20.100 / 58. 20.100
+  libavdevice    58.  5.100 / 58.  5.100
+  libavfilter     7. 40.101 /  7. 40.101
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  3.100 /  5.  3.100
+  libswresample   3.  3.100 /  3.  3.100
+  libpostproc    55.  3.100 / 55.  3.100
+Input #0, image2, from 'experiments/test-26/visualizations/*.jpg':
+  Duration: 00:00:05.12, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: mjpeg, yuvj420p(pc, bt470bg/unknown/unknown), 256x256 [SAR 1:1 DAR 1:1], 25 fps, 25 tbr, 25 tbn, 25 tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[swscaler @ 0x555fbe82a580] deprecated pixel format used, make sure you did set range correctly
+[libx264 @ 0x555fbe79ab40] using SAR=1/1
+[libx264 @ 0x555fbe79ab40] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 0x555fbe79ab40] profile High, level 1.2
+[libx264 @ 0x555fbe79ab40] 264 - core 155 r2917 0a84d98 - H.264/MPEG-4 AVC codec - Copyleft 2003-2018 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=6 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=16 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=25.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'experiments/test-26/visualizations/visualization.mp4':
+  Metadata:
+    encoder         : Lavf58.20.100
+    Stream #0:0: Video: h264 (libx264) (avc1 / 0x31637661), yuv420p, 256x256 [SAR 1:1 DAR 1:1], q=-1--1, 16 fps, 16384 tbn, 16 tbc
+    Metadata:
+      encoder         : Lavc58.35.100 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=  128 fps=0.0 q=-1.0 Lsize=      40kB time=00:00:07.81 bitrate=  42.4kbits/s speed=55.2x
+video:39kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 4.358994%
+[libx264 @ 0x555fbe79ab40] frame I:1     Avg QP:14.64  size:   803
+[libx264 @ 0x555fbe79ab40] frame P:102   Avg QP:21.61  size:   344
+[libx264 @ 0x555fbe79ab40] frame B:25    Avg QP:23.64  size:   126
+[libx264 @ 0x555fbe79ab40] consecutive B-frames: 71.1%  7.8%  2.3% 18.8%
+[libx264 @ 0x555fbe79ab40] mb I  I16..4: 54.3% 44.9%  0.8%
+[libx264 @ 0x555fbe79ab40] mb P  I16..4:  0.3%  1.1%  0.0%  P16..4:  5.8%  4.5%  2.1%  0.0%  0.0%    skip:86.1%
+[libx264 @ 0x555fbe79ab40] mb B  I16..4:  0.4%  0.3%  0.0%  B16..8:  7.1%  1.2%  0.2%  direct: 0.6%  skip:90.2%  L0:24.7% L1:35.9% BI:39.4%
+[libx264 @ 0x555fbe79ab40] 8x8 transform intra:63.7% inter:62.0%
+[libx264 @ 0x555fbe79ab40] coded y,uvDC,uvAC intra: 22.8% 0.0% 0.0% inter: 5.2% 0.0% 0.0%
+[libx264 @ 0x555fbe79ab40] i16 v,h,dc,p: 85%  5% 10%  0%
+[libx264 @ 0x555fbe79ab40] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu:  8% 19% 46%  4%  5%  7%  4%  4%  4%
+[libx264 @ 0x555fbe79ab40] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 27%  2% 45%  4%  8%  5%  2%  7%  0%
+[libx264 @ 0x555fbe79ab40] i8c dc,h,v,p: 100%  0%  0%  0%
+[libx264 @ 0x555fbe79ab40] Weighted P-Frames: Y:2.0% UV:0.0%
+[libx264 @ 0x555fbe79ab40] ref P L0: 74.4% 22.3%  2.5%  0.8%  0.0%
+[libx264 @ 0x555fbe79ab40] ref B L0: 91.4%  6.5%  2.2%
+[libx264 @ 0x555fbe79ab40] ref B L1: 99.2%  0.8%
+[libx264 @ 0x555fbe79ab40] kb/s:39.02
+Generating experiments/test-26/visualizations/visualization.mp4
+----- END -----

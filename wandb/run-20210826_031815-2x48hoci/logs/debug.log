@@ -1,0 +1,40 @@
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_setup.py:_flush():69] setting env: {}
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_setup.py:_flush():69] setting login settings: {}
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_init.py:_log_setup():342] Logging user logs to /home/vicc/neural-sculpture/wandb/run-20210826_031815-2x48hoci/logs/debug.log
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_init.py:_log_setup():343] Logging internal logs to /home/vicc/neural-sculpture/wandb/run-20210826_031815-2x48hoci/logs/debug-internal.log
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_init.py:_jupyter_setup():294] configuring jupyter hooks <wandb.sdk.wandb_init._WandbInit object at 0x7f43523aa2d0>
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_init.py:init():375] calling init triggers
+2021-08-26 03:18:15,684 INFO    MainThread:28396 [wandb_init.py:init():382] wandb.init called with sweep_config: {}
+config: {'learning_rate': 0.03, 'batch_size': -1, 'init_tolerance': 0, 'iters_per_res': 8, 'max_iters_per_cam': 32, 'camera': namespace(init_num_cameras=8, mapping_span=6.283185307179586, mapping_type='sdfdiff', max_num_cameras=8, shuffle_order=False), 'loss': namespace(image_loss_weight=0.0002, lp_loss_weight=0.001, sdf_loss_weight=0.001)}
+2021-08-26 03:18:15,685 INFO    MainThread:28396 [wandb_init.py:init():424] starting backend
+2021-08-26 03:18:15,685 INFO    MainThread:28396 [backend.py:_multiprocessing_setup():72] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2021-08-26 03:18:15,709 INFO    MainThread:28396 [backend.py:ensure_launched():135] starting backend process...
+2021-08-26 03:18:15,734 INFO    MainThread:28396 [backend.py:ensure_launched():140] started backend process with pid: 30905
+2021-08-26 03:18:15,738 INFO    MainThread:28396 [wandb_init.py:init():429] backend started and connected
+2021-08-26 03:18:15,742 INFO    MainThread:28396 [wandb_run.py:_label_probe_notebook():798] probe notebook
+2021-08-26 03:18:15,743 INFO    MainThread:28396 [wandb_run.py:_label_probe_notebook():805] Unable to probe notebook: 'NoneType' object has no attribute 'get'
+2021-08-26 03:18:15,743 INFO    MainThread:28396 [wandb_init.py:init():477] updated telemetry
+2021-08-26 03:18:15,743 INFO    MainThread:28396 [wandb_init.py:init():500] communicating current version
+2021-08-26 03:18:16,303 INFO    MainThread:28396 [wandb_init.py:init():505] got version response 
+2021-08-26 03:18:16,303 INFO    MainThread:28396 [wandb_init.py:init():513] communicating run to backend with 30 second timeout
+2021-08-26 03:18:16,412 INFO    MainThread:28396 [wandb_init.py:init():540] starting run threads in backend
+2021-08-26 03:18:16,472 INFO    MainThread:28396 [wandb_run.py:_console_start():1584] atexit reg
+2021-08-26 03:18:16,473 INFO    MainThread:28396 [wandb_run.py:_redirect():1458] redirect: SettingsConsole.WRAP
+2021-08-26 03:18:16,473 INFO    MainThread:28396 [wandb_run.py:_redirect():1495] Wrapping output streams.
+2021-08-26 03:18:16,474 INFO    MainThread:28396 [wandb_run.py:_redirect():1519] Redirects installed.
+2021-08-26 03:18:16,475 INFO    MainThread:28396 [wandb_init.py:init():565] run started, returning control to user process
+2021-08-26 03:18:16,510 INFO    MainThread:28396 [wandb_init.py:_pause_backend():256] pausing backend
+2021-08-26 03:18:16,510 INFO    MainThread:28396 [jupyter.py:save_ipynb():284] not saving jupyter notebook
+2021-08-26 03:20:28,446 INFO    MainThread:28396 [wandb_init.py:_resume_backend():265] resuming backend
+2021-08-26 03:20:28,447 INFO    MainThread:28396 [wandb_init.py:_pause_backend():256] pausing backend
+2021-08-26 03:20:28,447 INFO    MainThread:28396 [jupyter.py:save_ipynb():284] not saving jupyter notebook
+2021-08-26 03:20:28,800 INFO    MainThread:28396 [wandb_init.py:_resume_backend():265] resuming backend
+2021-08-26 03:20:28,807 INFO    MainThread:28396 [wandb_setup.py:_flush():69] setting env: {}
+2021-08-26 03:20:28,808 INFO    MainThread:28396 [wandb_setup.py:_flush():69] setting login settings: {}
+2021-08-26 03:20:28,809 INFO    MainThread:28396 [wandb_init.py:_log_setup():342] Logging user logs to /home/vicc/neural-sculpture/wandb/run-20210826_032028-bsiw5uz5/logs/debug.log
+2021-08-26 03:20:28,809 INFO    MainThread:28396 [wandb_init.py:_log_setup():343] Logging internal logs to /home/vicc/neural-sculpture/wandb/run-20210826_032028-bsiw5uz5/logs/debug-internal.log
+2021-08-26 03:20:28,809 INFO    MainThread:28396 [wandb_init.py:init():375] calling init triggers
+2021-08-26 03:20:28,809 INFO    MainThread:28396 [wandb_init.py:init():382] wandb.init called with sweep_config: {}
+config: {'learning_rate': 0.03, 'batch_size': 1, 'init_tolerance': -1, 'iters_per_res': 8, 'max_iters_per_cam': 32, 'camera': namespace(init_num_cameras=8, mapping_span=6.283185307179586, mapping_type='sdfdiff', max_num_cameras=8, shuffle_order=False), 'loss': namespace(image_loss_weight=0.0002, lp_loss_weight=0.001, sdf_loss_weight=0.001)}
+2021-08-26 03:20:28,810 INFO    MainThread:28396 [wandb_init.py:init():397] re-initializing run, found existing run on stack: 2x48hoci
+2021-08-26 03:20:28,811 INFO    MainThread:28396 [wandb_run.py:finish():1254] finishing run viccpoes/neural-sculpture/2x48hoci

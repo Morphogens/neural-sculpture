@@ -6,7 +6,7 @@ import clip
 class CLIPLoss():
     def __init__(
         self,
-        text_target,
+        text_target=None,
         device=None,
     ):
         if device is not None:
@@ -34,11 +34,12 @@ class CLIPLoss():
             torchvision.transforms.RandomAffine(24, (.05, .05)),
         ).to(self.device)
 
-        tokenized_text = clip.tokenize([text_target])
-        tokenized_text = tokenized_text.to(self.device).detach()
-        text_logits = self.clip_model.encode_text(tokenized_text)
-        self.text_logits = (text_logits /
-                            text_logits.norm(dim=-1, keepdim=True)).detach()
+        if text_target is not None:
+            tokenized_text = clip.tokenize([text_target])
+            tokenized_text = tokenized_text.to(self.device).detach()
+            text_logits = self.clip_model.encode_text(tokenized_text)
+            self.text_logits = (
+                text_logits / text_logits.norm(dim=-1, keepdim=True)).detach()
 
     def augment(
         self,
@@ -124,12 +125,29 @@ class CLIPLoss():
 
         return img_logits
 
-    def compute(self, img_batch: torch.Tensor, doAugment: bool = True):
-        if doAugment:
-            img_batch = self.augment(img_batch)
+    def compute(
+        self,
+        img_batch: torch.Tensor,
+        prompt: str = None,
+        doAugment: bool = True,
+    ):
+        # if doAugment:
+        #     img_batch = self.augment(img_batch)
         img_logits = self.get_clip_img_encodings(img_batch)
 
-        loss = -torch.cosine_similarity(self.text_logits, img_logits).mean()
+        if prompt is not None:
+            tokenized_text = clip.tokenize([prompt])
+            tokenized_text = tokenized_text.to(self.device).detach()
+            text_logits = self.clip_model.encode_text(tokenized_text)
+            text_logits = (text_logits /
+                           text_logits.norm(dim=-1, keepdim=True)).detach()
+        else:
+            text_logits = self.text_logits
+
+        # return (text_logits - img_logits).pow(2).mean()
+        # return (text_logits - img_logits).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+
+        loss = -torch.cosine_similarity(text_logits, img_logits).mean()
 
         return loss
 

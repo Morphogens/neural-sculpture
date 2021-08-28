@@ -1,0 +1,26 @@
+{
+    "os": "Linux-4.19.0-17-cloud-amd64-x86_64-with-debian-10.10",
+    "python": "3.7.9",
+    "heartbeatAt": "2021-08-26T03:23:33.607808",
+    "startedAt": "2021-08-26T03:23:32.853022",
+    "docker": null,
+    "gpu": "Tesla T4",
+    "gpu_count": 1,
+    "cpu_count": 4,
+    "cuda": "11.0.228",
+    "args": [
+        "-f",
+        "/home/vicc/.local/share/jupyter/runtime/kernel-2c2466cf-ae7f-430f-9dc7-2c3d3669a686.json"
+    ],
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/Morphogens/neural-sculpture",
+        "commit": "eef27ea048a2bd6fa8532e41af4d9dca5ae896df"
+    },
+    "email": null,
+    "root": "/home/vicc/neural-sculpture",
+    "host": "neural-sculpture-vm",
+    "username": "vicc",
+    "executable": "/opt/conda/envs/neural-sculpture/bin/python"
+}

@@ -562,14 +562,14 @@ class SDFOptimizer:
 
 if __name__ == "__main__":
     optim_config = SimpleNamespace(
-        learning_rate=0.01,
+        learning_rate=0.006,
         batch_size=1,
-        init_tolerance=-0.5,
+        init_tolerance=-0.2,
         iters_per_res=6,
         max_iters_per_cam=8,
         camera=SimpleNamespace(
-            max_num_cameras=8,
-            init_num_cameras=8,
+            max_num_cameras=16,
+            init_num_cameras=4,
             mapping_span=math.pi / 2,
             shuffle_order=False,
             mapping_type="linear",

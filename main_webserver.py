@@ -1,4 +1,5 @@
-from sdf_clip import SDFCLIP
+from clip_sdf import clip_sdf_optimization
+from types import SimpleNamespace
 import torch
 import numpy as np
 import skimage.measure
@@ -9,6 +10,7 @@ import asyncio
 import fastapi
 import json
 from fastapi import FastAPI, WebSocket
+import math
 app = fastapi.FastAPI()
 
 
@@ -35,7 +37,6 @@ async_result = None
 @app.on_event("startup")
 async def startup_event():
     global async_result
-    print("XXX init!", os.getpid())
     async_result = AsyncResult()
 
 class UserSession:
@@ -94,16 +95,39 @@ def on_update(mesh: torch.Tensor):
 # lp loss --> regulates that the elements are altogether
 
 import uvicorn
-def main():
-    sdf_clip = SDFCLIP(
-        prompt="Mesh of a bunny rabbit rendered with zbrush maya",
-        on_update=on_update,
-        out_img_width=256,
-        out_img_height=256,
+
+def run_sdf_clip():
+    optim_config = SimpleNamespace(
+        learning_rate=0.01,
+        batch_size=1,
+        init_tolerance=0.1,
+        iters_per_res=6,
+        max_iters_per_cam=32,
+        camera=SimpleNamespace(
+            max_num_cameras=64,
+            init_num_cameras=16,
+            mapping_span=2 * math.pi,
+            shuffle_order=False,
+            mapping_type="linear",
+        ),
+        loss=SimpleNamespace(
+            image_loss_weight=1 / 1000,
+            sdf_loss_weight=1 / 1000,
+            lp_loss_weight=1 / 1000,
+        ),
     )
 
+    clip_sdf_optimization(
+        prompt="3D bunny rabbit mesh rendered with maya zbrush",
+        optim_config=optim_config,
+        experiment_name="test",
+        sdf_grid_res_list=[8, 16, 24, 32, 40, 48, 56, 64],
+        on_update=on_update,
+    )
+
+def main():
     import threading
-    thread = threading.Thread(target=sdf_clip.run, daemon=True)
+    thread = threading.Thread(target=run_sdf_clip, daemon=True)
     thread.start()
     uvicorn.run(app, host="0.0.0.0", port=9999, loop="asyncio")
 

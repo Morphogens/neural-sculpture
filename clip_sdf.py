@@ -177,7 +177,6 @@ class SDFOptimizer:
         self,
         camera_angle,
     ):
-        # for cam_iter in range(max_num_iters_per_camera):
         image = generate_image(
             self.bounding_box_min_x,
             self.bounding_box_min_y,
@@ -335,7 +334,6 @@ class SDFOptimizer:
 
                     cam_iter = 0
                     while True:
-                        cam_iter += 1
 
                         gen_img = self.generate_image(
                             camera_angle_list[cam_view_idx], )
@@ -424,6 +422,8 @@ class SDFOptimizer:
 
                             cam_view_loss = 0
 
+                        cam_iter += 1
+
                     torch.save(
                         self.grid,
                         os.path.join(self.results_dir, "grid.pt"),
@@ -476,6 +476,26 @@ class SDFOptimizer:
             self.optimizer.state_dict()['state'] = optim_state
 
             grid_res_idx += 1
+
+    def optimize_view(
+        self,
+        prompt,
+        camera_angle,
+    ):
+        gen_img = self.generate_image(camera_angle, )
+
+        image_loss, sdf_loss, lp_loss = self.compute_losses(
+            gen_img,
+            prompt,
+        )
+
+        cam_view_loss = image_loss + sdf_loss + lp_loss
+
+        self.optimizer.zero_grad()
+        cam_view_loss.backward()
+        self.optimizer.step()
+
+        return self.grid
 
     def generate_visualizations(self, ):
         vis_dir = os.path.join(self.results_dir, "visualizations")
@@ -539,7 +559,7 @@ if __name__ == "__main__":
         max_iters_per_cam=8,
         camera=SimpleNamespace(
             max_num_cameras=8,
-            init_num_cameras=4,
+            init_num_cameras=8,
             mapping_span=math.pi / 2,
             shuffle_order=False,
             mapping_type="linear",

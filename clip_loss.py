@@ -131,8 +131,8 @@ class CLIPLoss():
         prompt: str = None,
         doAugment: bool = True,
     ):
-        # if doAugment:
-        #     img_batch = self.augment(img_batch)
+        if doAugment:
+            img_batch = self.augment(img_batch)
         img_logits = self.get_clip_img_encodings(img_batch)
 
         if prompt is not None:

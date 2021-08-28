@@ -13,5 +13,6 @@ results
 og_results
 experiments
 runs
+wandb
 
 .ipynb_checkpoints

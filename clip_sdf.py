@@ -54,6 +54,8 @@ class SDFOptimizer:
         self.out_img_width = out_img_width
         self.out_img_height = out_img_height
 
+        self.learning_rate = self.config.learning_rate
+
         self.bounding_box_min_x = -2.
         self.bounding_box_min_y = -2.
         self.bounding_box_min_z = -2.
@@ -94,6 +96,7 @@ class SDFOptimizer:
 
     def initialize_optim(self, ):
         self.grid = self.generate_initial_grid()
+        self.learning_rate = self.config.learning_rate
         self.optimizer = torch.optim.Adam(
             [self.grid],
             lr=self.config.learning_rate,
@@ -473,10 +476,10 @@ class SDFOptimizer:
                 mode='trilinear',
             )[0, 0, :]
 
-            self.config.learning_rate /= 1.2
+            self.learning_rate /= 1.2
             self.optimizer = torch.optim.Adam(
                 [self.grid],
-                lr=self.config.learning_rate,
+                lr=self.learning_rate,
                 eps=1e-8,
             )
 

@@ -48,6 +48,7 @@ class SDFOptimizer:
         sdf_grid_res_list: List[int] = [8, 16, 24, 32, 40, 48, 56, 64],
         out_img_width=256,
         out_img_height=256,
+        on_update: Callable[[torch.Tensor], None]=None,
     ):
         self.config = config
         self.sdf_grid_res_list = sdf_grid_res_list
@@ -62,6 +63,7 @@ class SDFOptimizer:
         self.bounding_box_max_x = 2
         self.bounding_box_max_y = 2
         self.bounding_box_max_z = 2
+        self.on_update = on_update
 
         self.results_dir = None
 
@@ -373,6 +375,9 @@ class SDFOptimizer:
                             self.optimizer.zero_grad()
                             cam_view_loss.backward()
                             self.optimizer.step()
+
+                            if self.on_update:
+                                self.on_update(self.grid)
 
                             # NOTE: clears jupyter notebook cell output
                             clear_output(wait=True)

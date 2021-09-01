@@ -1,15 +1,18 @@
+import os
 import math
 import json
+import threading
 from types import SimpleNamespace
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 import torch
-import trimesh
 import asyncio
+import trimesh
+import fastapi
+import uvicorn
 import skimage.measure
 import numpy as np
-import fastapi
 from fastapi import FastAPI, WebSocket
 
 from clip_sdf import SDFOptimizer
@@ -22,7 +25,7 @@ polygon_worker = ThreadPoolExecutor(1)
 class AsyncResult:
     def __init__(self):
         loop = asyncio.get_event_loop()
-        self.signal = asyncio.Event(loop=loop)
+        self.signal = asyncio.Event(loop=loop, )
         self.value = None
 
     def set(self, value):
@@ -45,19 +48,22 @@ async def startup_event():
 
 
 class UserSession:
-    def __init__(self, websocket: WebSocket):
+    def __init__(
+        self,
+        websocket: WebSocket,
+    ):
         self.websocket = websocket
 
-    async def run(self):
+    async def run(self, ):
         await asyncio.gather(self.listen_loop(), self.send_loop())
 
-    async def listen_loop(self):
+    async def listen_loop(self, ):
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
             print("XXX Got cmd", cmd)
 
-    async def send_loop(self):
+    async def send_loop(self, ):
         while True:
             model = await async_result.wait()
             print(f"XXX WS sending model, {len(model)//1024}kb")
@@ -71,9 +77,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     us = UserSession(websocket)
     await us.run()
-
-
-import os
 
 
 def process_sdf(sdf: np.ndarray):
@@ -103,11 +106,9 @@ def on_update(mesh: torch.Tensor):
 # sdf loss --> regulates that the shape is smooth
 # lp loss --> regulates that the elements are altogether
 
-import uvicorn
-
 
 def run_sdf_clip():
-    # MAYBE BEST PARAMS EVER!!
+    # NOTE: MAYBE BEST PARAMS EVER!!
     optim_config = SimpleNamespace(
         learning_rate=0.01,
         batch_size=1,
@@ -139,10 +140,17 @@ def run_sdf_clip():
 
 
 def main():
-    import threading
-    thread = threading.Thread(target=run_sdf_clip, daemon=True)
+    thread = threading.Thread(
+        target=run_sdf_clip,
+        daemon=True,
+    )
     thread.start()
-    uvicorn.run(app, host="0.0.0.0", port=9999, loop="asyncio")
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=9999,
+        loop="asyncio",
+    )
 
 
 if __name__ == "__main__":

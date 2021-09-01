@@ -1,20 +1,23 @@
-from clip_sdf import SDFOptimizer
+import math
+import json
 from types import SimpleNamespace
-import torch
-import numpy as np
-import skimage.measure
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+
+import torch
 import trimesh
 import asyncio
+import skimage.measure
+import numpy as np
 import fastapi
-import json
 from fastapi import FastAPI, WebSocket
-import math
+
+from clip_sdf import SDFOptimizer
+
 app = fastapi.FastAPI()
 
-
 polygon_worker = ThreadPoolExecutor(1)
+
 
 class AsyncResult:
     def __init__(self):
@@ -31,23 +34,22 @@ class AsyncResult:
         self.signal.clear()
         return self.value
 
-    
+
 async_result = None
+
 
 @app.on_event("startup")
 async def startup_event():
     global async_result
     async_result = AsyncResult()
 
+
 class UserSession:
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
 
     async def run(self):
-        await asyncio.gather(
-            self.listen_loop(),
-            self.send_loop()
-        )
+        await asyncio.gather(self.listen_loop(), self.send_loop())
 
     async def listen_loop(self):
         while True:
@@ -70,13 +72,18 @@ async def websocket_endpoint(websocket: WebSocket):
     us = UserSession(websocket)
     await us.run()
 
+
 import os
+
+
 def process_sdf(sdf: np.ndarray):
     global async_result
 
     start = datetime.now()
     vertices, faces, normals, _ = skimage.measure.marching_cubes(sdf, level=0)
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, vertex_normals=normals)
+    mesh = trimesh.Trimesh(vertices=vertices,
+                           faces=faces,
+                           vertex_normals=normals)
     obj = trimesh.exchange.obj.export_obj(mesh)
     dur = datetime.now() - start
     if async_result:
@@ -86,15 +93,18 @@ def process_sdf(sdf: np.ndarray):
         print("XXX NO NOTIFIER???")
     print("Took", dur.total_seconds())
 
+
 #%%
 def on_update(mesh: torch.Tensor):
     print("XXX enqueuing preprocess")
     polygon_worker.submit(process_sdf, mesh.detach().cpu().numpy())
 
+
 # sdf loss --> regulates that the shape is smooth
 # lp loss --> regulates that the elements are altogether
 
 import uvicorn
+
 
 def run_sdf_clip():
     # MAYBE BEST PARAMS EVER!!
@@ -107,7 +117,7 @@ def run_sdf_clip():
         camera=SimpleNamespace(
             max_num_cameras=16,
             init_num_cameras=8,
-            mapping_span=math.pi/4,
+            mapping_span=math.pi / 4,
             shuffle_order=False,
             mapping_type="linear",
         ),
@@ -121,18 +131,19 @@ def run_sdf_clip():
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
         # sdf_grid_res_list = [12, 24, 40, 64],
-        on_update=on_update
-    )
+        on_update=on_update)
     sdf_optimizer.clip_sdf_optimization(
         prompt="3D bunny rabbit mesh rendered with maya zbrush",
         experiment_name="test",
     )
+
 
 def main():
     import threading
     thread = threading.Thread(target=run_sdf_clip, daemon=True)
     thread.start()
     uvicorn.run(app, host="0.0.0.0", port=9999, loop="asyncio")
+
 
 if __name__ == "__main__":
     main()

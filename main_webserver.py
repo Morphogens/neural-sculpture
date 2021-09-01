@@ -1,4 +1,4 @@
-from clip_sdf import clip_sdf_optimization
+from clip_sdf import SDFOptimizer
 from types import SimpleNamespace
 import torch
 import numpy as np
@@ -97,16 +97,17 @@ def on_update(mesh: torch.Tensor):
 import uvicorn
 
 def run_sdf_clip():
+    # MAYBE BEST PARAMS EVER!!
     optim_config = SimpleNamespace(
         learning_rate=0.01,
         batch_size=1,
-        init_tolerance=0.1,
-        iters_per_res=6,
-        max_iters_per_cam=32,
+        init_tolerance=-0.1,
+        iters_per_res=4,
+        max_iters_per_cam=8,
         camera=SimpleNamespace(
-            max_num_cameras=64,
-            init_num_cameras=16,
-            mapping_span=2 * math.pi,
+            max_num_cameras=16,
+            init_num_cameras=8,
+            mapping_span=math.pi/4,
             shuffle_order=False,
             mapping_type="linear",
         ),
@@ -117,12 +118,14 @@ def run_sdf_clip():
         ),
     )
 
-    clip_sdf_optimization(
+    sdf_optimizer = SDFOptimizer(
+        config=optim_config,
+        # sdf_grid_res_list = [12, 24, 40, 64],
+        on_update=on_update
+    )
+    sdf_optimizer.clip_sdf_optimization(
         prompt="3D bunny rabbit mesh rendered with maya zbrush",
-        optim_config=optim_config,
         experiment_name="test",
-        sdf_grid_res_list=[8, 16, 24, 32, 40, 48, 56, 64],
-        on_update=on_update,
     )
 
 def main():

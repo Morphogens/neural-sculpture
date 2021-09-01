@@ -148,7 +148,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=9999,
+        port=8005,
         loop="asyncio",
     )
 

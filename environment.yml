@@ -16,6 +16,10 @@ dependencies:
   - python=3.7.9
   - yapf=0.31.0
   - pip:
+    - trimesh==3.9.29
+    - fastapi==0.68.1
+    - uvicorn==0.15.0
+    - scikit_image==0.18.3
     - absl-py==0.13.0
     - aiohttp==3.7.4.post0
     - async-timeout==3.0.1

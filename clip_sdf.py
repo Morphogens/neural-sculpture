@@ -41,6 +41,27 @@ clip_loss = CLIPLoss()
 writer = SummaryWriter()
 
 
+class SDFGradWeighter(torch.autograd.Function):
+    @staticmethod
+    def forward(self, grid):
+        weight_grid = (1 / (grid.abs() + 1e-3))
+        weight_grid /= weight_grid.max()
+        self.save_for_backward(weight_grid)
+
+        return grid
+
+    @staticmethod
+    def backward(self, grad_output):
+        weight_grid, = self.saved_tensors
+        grad_input = grad_output.clone()
+        grad_input *= weight_grid
+        return grad_output
+        return grad_input
+
+
+sdf_grad_weighter = SDFGradWeighter.apply
+
+
 class SDFOptimizer:
     def __init__(
         self,
@@ -48,7 +69,7 @@ class SDFOptimizer:
         sdf_grid_res_list: List[int] = [8, 16, 24, 32, 40, 48, 56, 64],
         out_img_width=256,
         out_img_height=256,
-        on_update: Callable[[torch.Tensor], None]=None,
+        on_update: Callable[[torch.Tensor], None] = None,
     ):
         self.config = config
         self.sdf_grid_res_list = sdf_grid_res_list
@@ -240,6 +261,7 @@ class SDFOptimizer:
         gen_img,
         prompt,
     ):
+        # self.grid = sdf_grad_weighter(self.grid)
         image_loss, sdf_loss = self.loss_fn(
             gen_img,
             self.grid,
@@ -346,7 +368,6 @@ class SDFOptimizer:
 
                     cam_iter = 0
                     while True:
-
                         gen_img = self.generate_image(
                             camera_angle_list[cam_view_idx], )
 

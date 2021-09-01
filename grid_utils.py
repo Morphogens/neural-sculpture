@@ -19,7 +19,7 @@ def grid_construction_sphere_big(
     grid = torch.sqrt(x_dim * x_dim + y_dim * y_dim + z_dim * z_dim) - 1.6
 
     # noise_grid = torch.rand_like(grid) + 0.2
-    noise_grid = torch.rand((4, 4, 4)) + 0.2
+    noise_grid = torch.rand((4, 4, 4)) + 0.0
 
     noise_grid = torch.nn.functional.interpolate(
         noise_grid[None, None, :],

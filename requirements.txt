@@ -1,6 +1,6 @@
 # web
 fastapi==0.63.0
-uvicorn==0.13.4
+uvicorn[standard]
 
 # mesh
 trimesh==3.9.29

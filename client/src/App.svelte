@@ -120,11 +120,13 @@ function raycast() {
             const { point } = intersects[0]
             sphere.position.copy(point)
             document.body.style.cursor = 'none'
-            messageServer('cursor', {
-                mouseDown,
-                additive: !shiftDown,
-                point: point.toArray()
-            })
+            if (mouseDown){
+                messageServer('cursor', {
+                    mouseDown,
+                    additive: !shiftDown,
+                    point: point.toArray()
+                })
+            }
         } else {
             mouseOverMesh = false
             document.body.style.cursor = 'default'

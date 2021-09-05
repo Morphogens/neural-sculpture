@@ -55,7 +55,6 @@ class SDFGradWeighter(torch.autograd.Function):
         weight_grid, = self.saved_tensors
         grad_input = grad_output.clone()
         grad_input *= weight_grid
-        return grad_output
         return grad_input
 
 
@@ -70,11 +69,13 @@ class SDFOptimizer:
         out_img_width=256,
         out_img_height=256,
         on_update: Callable[[torch.Tensor], None] = None,
+        sdf_file_path: str = None,
     ):
         self.config = config
         self.sdf_grid_res_list = sdf_grid_res_list
         self.out_img_width = out_img_width
         self.out_img_height = out_img_height
+        self.sdf_file_path = sdf_file_path
 
         self.learning_rate = self.config.learning_rate
 
@@ -108,11 +109,28 @@ class SDFOptimizer:
         self.voxel_size = Tensor([4. / (self.grid_res_x - 1)])
 
     def generate_initial_grid(self, ):
-        grid = grid_construction_sphere_big(
-            self.grid_res_x,
-            self.bounding_box_min_x,
-            self.bounding_box_max_x,
-        )
+        if self.sdf_file_path is None:
+            grid = grid_construction_sphere_big(
+                self.grid_res_x,
+                self.bounding_box_min_x,
+                self.bounding_box_max_x,
+            )
+
+        else:
+            grid = np.load(self.sdf_file_path)
+            # grid = np.stack([
+            #     np.transpose(grid[:, :, idx]) for idx in range(grid.shape[-1])
+            # ])
+            grid = Tensor(grid)
+            grid = torch.transpose(grid, 1, 2).contiguous()
+            grid = torch.nn.functional.interpolate(
+                grid[None, None, :],
+                size=(self.sdf_grid_res_list[0], ) * 3,
+                mode='trilinear',
+            )[0, 0, :]
+            # NOTE: make shape smaller
+            grid += 0.3
+
         grid.requires_grad = True
 
         return grid
@@ -130,6 +148,7 @@ class SDFOptimizer:
         self,
         num_cameras: int,
         mapping_span: float,
+        mapping_offset: float = 0,
         shuffle_order: bool = False,
         mapping_type: str = "linear",
     ):
@@ -144,10 +163,16 @@ class SDFOptimizer:
                 #     for a in lin_space1 + lin_space2
                 # ]
 
-                lin_space = list(np.linspace(0, 1, num_cameras) * mapping_span)
+                lin_space = list(
+                    np.linspace(0, 1, num_cameras) * mapping_span +
+                    mapping_offset)
+
                 camera_angle_list = [
-                    Tensor([5 * math.cos(a), 0, 5 * math.sin(a)])
-                    for a in lin_space
+                    Tensor([
+                        5 * math.cos(a),
+                        0,
+                        5 * math.sin(a),
+                    ]) for a in lin_space
                 ]
 
             elif mapping_type == "sdfdiff":
@@ -354,6 +379,7 @@ class SDFOptimizer:
                 camera_angle_list = self.get_camera_angle_list(
                     num_cameras=num_cameras,
                     mapping_span=self.config.camera.mapping_span,
+                    mapping_offset=self.config.camera.mapping_offset,
                     shuffle_order=self.config.camera.shuffle_order,
                     mapping_type=self.config.camera.mapping_type,
                 )
@@ -370,6 +396,9 @@ class SDFOptimizer:
                     while True:
                         gen_img = self.generate_image(
                             camera_angle_list[cam_view_idx], )
+
+                        # if self.sdf_file_path is not None:
+                        # gen_img = torch.rot90(gen_img)
 
                         image_loss, sdf_loss, lp_loss = self.compute_losses(
                             gen_img,
@@ -389,7 +418,6 @@ class SDFOptimizer:
                             init_loss = image_loss
 
                         global_iter += 1
-
                         if global_iter % self.config.batch_size == 0:
                             cam_view_loss /= self.config.batch_size
 
@@ -503,10 +531,11 @@ class SDFOptimizer:
             )[0, 0, :]
 
             self.learning_rate /= 1.2
-            self.optimizer = torch.optim.Adam(
+            self.optimizer = torch.optim.AdamW(
                 [self.grid],
                 lr=self.learning_rate,
                 eps=1e-8,
+                weight_decay=1e-2,
             )
 
             self.optimizer.state_dict()['state'] = optim_state
@@ -530,6 +559,74 @@ class SDFOptimizer:
         self.optimizer.zero_grad()
         cam_view_loss.backward()
         self.optimizer.step()
+
+        return self.grid
+
+    def optimize_coord(
+        self,
+        prompt,
+        coord,
+        weight_range=6,
+    ):
+        coord = [int(c) for c in coord]
+        x_coord, y_coord, z_coord = coord
+
+        weight_grid = torch.zeros_like(self.grid)
+        res = weight_grid.shape[0]
+        weight_grid[
+            max(0, x_coord -
+                int(weight_range / 2)):min(res - 1, x_coord +
+                                           int(weight_range / 2)),
+            max(0, y_coord -
+                int(weight_range / 2)):min(res - 1, y_coord +
+                                           int(weight_range / 2)),
+            max(0, z_coord -
+                int(weight_range / 2)):min(res - 1, z_coord +
+                                           int(weight_range / 2)), ] = 1
+
+        camera_angle_list = self.get_camera_angle_list(
+            num_cameras=16,
+            mapping_span=2 * math.pi,
+            mapping_offset=math.pi,
+            shuffle_order=False,
+            mapping_type='linear',
+        )
+
+        for idx, camera_angle in enumerate(camera_angle_list):
+            gen_img = self.generate_image(camera_angle, )
+
+            self.grid.register_hook(lambda grad: grad * weight_grid.float())
+            image_loss, sdf_loss, lp_loss = self.compute_losses(
+                gen_img,
+                prompt,
+            )
+
+            cam_view_loss = image_loss + sdf_loss + lp_loss
+
+            self.optimizer.zero_grad()
+            cam_view_loss.backward()
+            self.optimizer.step()
+
+            self.results_dir = self.create_experiment_dir(
+                experiment_name='coord', )
+
+            torchvision.utils.save_image(
+                gen_img.detach(),
+                "./" + self.results_dir + "/" + "final_cam_" +
+                str(self.grid.shape[0]).zfill(4) + "-" + str(idx).zfill(4) +
+                ".jpg",
+                nrow=8,
+                padding=2,
+                normalize=False,
+                range=None,
+                scale_each=False,
+                pad_value=0,
+            )
+
+            # NOTE: jupyter notebook display
+            clear_output()
+            image_initial_array = gen_img.detach().cpu().numpy() * 255
+            display(Image.fromarray(image_initial_array.astype(np.uint8)))
 
         return self.grid
 
@@ -588,28 +685,38 @@ class SDFOptimizer:
 
 if __name__ == "__main__":
     optim_config = SimpleNamespace(
-        learning_rate=0.006,
+        learning_rate=0.003,
         batch_size=1,
         init_tolerance=-0.2,
         iters_per_res=6,
-        max_iters_per_cam=8,
+        max_iters_per_cam=4,
         camera=SimpleNamespace(
             max_num_cameras=16,
-            init_num_cameras=4,
-            mapping_span=math.pi / 2,
+            init_num_cameras=8,
+            mapping_span=math.pi,
+            mapping_offset=math.pi,
             shuffle_order=False,
             mapping_type="linear",
         ),
         loss=SimpleNamespace(
             image_loss_weight=1 / 1000,
-            sdf_loss_weight=1 / 1000,
-            lp_loss_weight=1 / 1000,
+            sdf_loss_weight=0 / 1000,
+            lp_loss_weight=0 / 1000,
         ),
     )
 
-    sdf_optimizer = SDFOptimizer(config=optim_config, )
-
-    sdf_optimizer.clip_sdf_optimization(
-        prompt="3D bunny rabbit mesh rendered with maya zbrush",
-        experiment_name="test",
+    sdf_optimizer = SDFOptimizer(
+        config=optim_config,
+        sdf_grid_res_list=[64],
+        sdf_file_path="./sdf-grids/cat-sdf.npy",
     )
+
+    coord = [18.33542332356351, 46.84751561112019, 44.28860300189207]
+    prompt = "3D bunny rabbit mesh rendered with maya zbrush"
+
+    sdf_optimizer.optimize_coord(prompt, coord)
+
+    # sdf_optimizer.clip_sdf_optimization(
+    #     prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
+    #     experiment_name="test",
+    # )

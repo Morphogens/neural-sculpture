@@ -50,20 +50,19 @@ def reset_sdf_optimizer():
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
         sdf_grid_res_list=sdf_grid_res_list,
-        sdf_file_path="./sdf-grids/cat-sdf.npy",
+        sdf_file_path=None, # "./sdf-grids/cat-sdf.npy",
         on_update=on_update,
     )
 
     return sdf_optimizer
 
 
-sdf_optimizer = reset_sdf_optimizer()
 
 
 class AsyncResult:
     def __init__(self):
         loop = asyncio.get_event_loop()
-        self.signal = asyncio.Event(loop=loop, )
+        self.signal = asyncio.Event(loop=loop)
         self.value = None
 
     def set(self, value):
@@ -88,7 +87,7 @@ async def startup_event():
 def generate_from_coord(coord: List[int], ):
     print("CURSOR TXT", coord)
 
-    sdf_optimizer.clip_sdf_optimization_from_coord(
+    sdf_optimizer.optimize_coord(
         coord=coord,
         prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
     )
@@ -122,8 +121,6 @@ class UserSession:
             model = await async_result.wait()
             print(f"XXX WS sending model, {len(model)//1024}kb")
             await self.websocket.send_text(model)
-            # await asyncio.sleep(1)
-            # await self.websocket.send_text("HI")
 
 
 @app.websocket("/ws")
@@ -174,6 +171,7 @@ def run_sdf_clip():
         experiment_name="test",
     )
 
+sdf_optimizer = reset_sdf_optimizer()
 
 def main():
     # thread = threading.Thread(
@@ -187,6 +185,7 @@ def main():
         port=8005,
         loop="asyncio",
     )
+
 
 
 if __name__ == "__main__":

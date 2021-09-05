@@ -5,6 +5,7 @@ if USE_WANDB:
 else:
     import wandb_stub as wandb
 
+from jupyter_utils import is_in_jupyter
 import os
 import math
 import glob
@@ -463,7 +464,6 @@ class SDFOptimizer:
                                   "iteration:", sdf_grid_res_iter, " - ",
                                   "cam view idx", cam_view_idx, " - ",
                                   "cam iters:", cam_iter + 1)
-
                             torchvision.utils.save_image(
                                 gen_img.detach(),
                                 "./" + self.results_dir + "/" + "final_cam_" +
@@ -477,12 +477,14 @@ class SDFOptimizer:
                                 pad_value=0,
                             )
 
-                            # NOTE: jupyter notebook display
-                            image_initial_array = gen_img.detach().cpu().numpy(
-                            ) * 255
-                            display(
-                                Image.fromarray(
-                                    image_initial_array.astype(np.uint8)))
+                            if is_in_jupyter:
+
+                                # NOTE: jupyter notebook display
+                                image_initial_array = gen_img.detach().cpu().numpy(
+                                ) * 255
+                                display(
+                                    Image.fromarray(
+                                        image_initial_array.astype(np.uint8)))
 
                             cam_view_loss = 0
 
@@ -624,9 +626,13 @@ class SDFOptimizer:
             )
 
             # NOTE: jupyter notebook display
-            clear_output()
-            image_initial_array = gen_img.detach().cpu().numpy() * 255
-            display(Image.fromarray(image_initial_array.astype(np.uint8)))
+            if is_in_jupyter:
+                clear_output()
+                image_initial_array = gen_img.detach().cpu().numpy() * 255
+                display(Image.fromarray(image_initial_array.astype(np.uint8)))
+
+        if self.on_update:
+            self.on_update(self.grid)
 
         return self.grid
 

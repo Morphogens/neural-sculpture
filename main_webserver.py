@@ -57,13 +57,12 @@ def reset_sdf_optimizer():
     return sdf_optimizer
 
 
-sdf_optimizer = reset_sdf_optimizer()
 
 
 class AsyncResult:
     def __init__(self):
         loop = asyncio.get_event_loop()
-        self.signal = asyncio.Event(loop=loop, )
+        self.signal = asyncio.Event(loop=loop)
         self.value = None
 
     def set(self, value):
@@ -174,6 +173,7 @@ def run_sdf_clip():
         experiment_name="test",
     )
 
+sdf_optimizer = reset_sdf_optimizer()
 
 def main():
     # thread = threading.Thread(
@@ -187,6 +187,7 @@ def main():
         port=8005,
         loop="asyncio",
     )
+
 
 
 if __name__ == "__main__":

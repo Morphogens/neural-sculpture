@@ -2,6 +2,7 @@ import os
 import math
 import json
 import threading
+from typing import *
 from types import SimpleNamespace
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -20,6 +21,43 @@ from clip_sdf import SDFOptimizer
 app = fastapi.FastAPI()
 
 polygon_worker = ThreadPoolExecutor(1)
+
+# XXX: MAYBE BEST PARAMS EVER!!
+optim_config = SimpleNamespace(
+    learning_rate=0.003,
+    batch_size=1,
+    init_tolerance=-0.2,
+    iters_per_res=6,
+    max_iters_per_cam=4,
+    camera=SimpleNamespace(
+        max_num_cameras=16,
+        init_num_cameras=8,
+        mapping_span=math.pi,
+        mapping_offset=math.pi,
+        shuffle_order=False,
+        mapping_type="linear",
+    ),
+    loss=SimpleNamespace(
+        image_loss_weight=1 / 1000,
+        sdf_loss_weight=0 / 1000,
+        lp_loss_weight=0 / 1000,
+    ),
+)
+sdf_grid_res_list = [16, 24, 40, 64]
+
+
+def reset_sdf_optimizer():
+    sdf_optimizer = SDFOptimizer(
+        config=optim_config,
+        sdf_grid_res_list=sdf_grid_res_list,
+        sdf_file_path="./sdf-grids/cat-sdf.npy",
+        on_update=on_update,
+    )
+
+    return sdf_optimizer
+
+
+sdf_optimizer = reset_sdf_optimizer()
 
 
 class AsyncResult:
@@ -47,6 +85,15 @@ async def startup_event():
     async_result = AsyncResult()
 
 
+def generate_from_coord(coord: List[int], ):
+    print("CURSOR TXT", coord)
+
+    sdf_optimizer.clip_sdf_optimization_from_coord(
+        coord=coord,
+        prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
+    )
+
+
 class UserSession:
     def __init__(
         self,
@@ -61,7 +108,14 @@ class UserSession:
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
+
             print("XXX Got cmd", cmd)
+
+            if cmd['message'] == 'cursor':
+                data_dict = cmd['data']
+                if data_dict is not None:
+                    coord = data_dict['point']
+                    generate_from_coord(coord)
 
     async def send_loop(self, ):
         while True:
@@ -108,43 +162,25 @@ def on_update(mesh: torch.Tensor):
 
 
 def run_sdf_clip():
-    # NOTE: MAYBE BEST PARAMS EVER!!
-    optim_config = SimpleNamespace(
-        learning_rate=0.01,
-        batch_size=1,
-        init_tolerance=-0.1,
-        iters_per_res=4,
-        max_iters_per_cam=8,
-        camera=SimpleNamespace(
-            max_num_cameras=16,
-            init_num_cameras=8,
-            mapping_span=math.pi / 4,
-            shuffle_order=False,
-            mapping_type="linear",
-        ),
-        loss=SimpleNamespace(
-            image_loss_weight=1 / 1000,
-            sdf_loss_weight=1 / 1000,
-            lp_loss_weight=1 / 1000,
-        ),
-    )
-
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
-        # sdf_grid_res_list = [12, 24, 40, 64],
-        on_update=on_update)
+        sdf_grid_res_list=sdf_grid_res_list,
+        sdf_file_path="./sdf-grids/cat-sdf.npy",
+        on_update=on_update,
+    )
+
     sdf_optimizer.clip_sdf_optimization(
-        prompt="3D bunny rabbit mesh rendered with maya zbrush",
+        prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
         experiment_name="test",
     )
 
 
 def main():
-    thread = threading.Thread(
-        target=run_sdf_clip,
-        daemon=True,
-    )
-    thread.start()
+    # thread = threading.Thread(
+    #     target=run_sdf_clip,
+    #     daemon=True,
+    # )
+    # thread.start()
     uvicorn.run(
         app,
         host="0.0.0.0",

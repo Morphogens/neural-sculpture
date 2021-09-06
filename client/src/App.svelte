@@ -4,7 +4,8 @@ import * as THREE from 'three'
 import { debounce } from 'ts-debounce'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; 
 import { socket, socketOpen } from './stores/socket'
-import { mesh } from './stores/mesh'
+import { lossStore, meshStore as mesh } from './stores/mesh'
+import LossHistory from "./LossHistory.svelte";
 
 ////////////////////////////////////////////////////////////////////////////////
 let clip_input:HTMLInputElement
@@ -163,8 +164,8 @@ onMount(() => {
     loop()
 })
 
-function initializeMesh() {
-    messageServer('initialize', '12140_Skull_v3_L2')
+function resetClicked() {
+    messageServer("initialize", "12140_Skull_v3_L2.npy")
 }
 
 </script>
@@ -178,13 +179,39 @@ function initializeMesh() {
     on:keyup={(event) => shiftDown = event.shiftKey}
 />
 <div id='container'>
+    <div class="connection">
+        <div class="indicator" class:live={$socketOpen} class:closed={!$socketOpen}/>Connection: {$socketOpen ? "Live" : "Disconnected" }
+    </div>
     <input type="text" value="Bunny" bind:this={clip_input}>
-    <button on:click={initializeMesh}>
-        Initialize Mesh
+    <button on:click={resetClicked}>
+        <div>Reset Mesh + Optimizer</div>
+         <div>(takes a few seconds)</div>
     </button>
+    <LossHistory points={$lossStore["camera"]}/>
 </div>
 
 <style>
+    .connection {
+        background: white;
+        display: flex;
+        align-items: center;
+        padding: 4px;
+    }
+
+    .indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 100%;
+        margin-right: 2px;
+    }
+    .indicator.live {
+        background: #059669;
+    }
+    .indicator.closed {
+        background: #DC2626
+;
+    }
+
     :global(body) {
         margin: 0px;
         padding: 0px;

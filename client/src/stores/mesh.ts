@@ -1,4 +1,4 @@
-import { readable } from 'svelte/store'
+import { readable, writable } from 'svelte/store'
 import type { Readable } from 'svelte/store'
 import { socket } from './socket'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
@@ -18,14 +18,29 @@ async function objStringToMesh(objString:string):Promise<Mesh> {
     })
 }
 
-export const mesh:Readable<null | Mesh> = readable(null, (set) => {
+
+
+export const meshStore = writable<Mesh>(null, (set) => {
     // Start off with a default bunny for testing.
     objStringToMesh(bunnyOBJ).then((bunny) => {
         set(bunny)
     })
+})
+
     
-    socket.addEventListener('message', async (event) => {
-        const objString = event.data
-        set(await objStringToMesh(objString))
-    })
+const losses: any = {};
+export const lossStore = writable<Record<string, number[]>>({});
+
+socket.addEventListener('message', async (event) => {
+    const data = JSON.parse(event.data);
+    for (const [name, loss] of Object.entries(data)) {
+        const history = losses[name] = losses[name] ?? Array(100).fill(loss);
+        history.push(loss);
+        if (history.length > 100) {
+            history.shift();
+        } 
+    }
+
+    lossStore.set(losses);
+    meshStore.set(await objStringToMesh(data.obj));
 })

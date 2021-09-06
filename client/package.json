@@ -19,6 +19,13 @@
     "vite": "^2.5.1"
   },
   "dependencies": {
+    "@types/d3": "^7.0.0",
+    "@types/d3-scale": "^4.0.1",
+    "@types/d3-selection": "^3.0.1",
+    "d3": "^7.0.1",
+    "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.0",
+    "d3-selection": "^3.0.0",
     "three": "^0.132.2",
     "ts-debounce": "^3.0.0"
   }

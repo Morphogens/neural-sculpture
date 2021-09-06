@@ -9,6 +9,7 @@ import { mesh } from './stores/mesh'
 ////////////////////////////////////////////////////////////////////////////////
 let clip_input:HTMLInputElement
 let mouseDown = false
+let mouseClicked = false
 let shiftDown = false
 const mouse = new THREE.Vector2();
 const lastCamera = new THREE.Vector3()
@@ -120,17 +121,21 @@ function raycast() {
             const { point } = intersects[0]
             sphere.position.copy(point)
             document.body.style.cursor = 'none'
-            if (mouseDown){
+            if (mouseClicked){
                 messageServer('cursor', {
-                    mouseDown,
+                    mouseClicked,
                     additive: !shiftDown,
                     point: point.toArray()
                 })
+                console.log("COORD INFO SENT TO THE SERVER")
+                console.log("COORD ", point.toArray())
+                mouseClicked = false
+
             }
         } else {
             mouseOverMesh = false
             document.body.style.cursor = 'default'
-            messageServer('cursor', null)
+            // messageServer('cursor', null)
         }
     }
 }
@@ -158,17 +163,25 @@ onMount(() => {
     loop()
 })
 
+function initializeMesh() {
+    messageServer('initialize', '12140_Skull_v3_L2')
+}
+
 </script>
 
 <svelte:body
     on:mousemove={onMouseMove}
     on:mousedown={() => mouseDown=true}
+    on:click={() => mouseClicked=true}
     on:mouseup={() => mouseDown=false}
     on:keydown={(event) => shiftDown = event.shiftKey}
     on:keyup={(event) => shiftDown = event.shiftKey}
 />
 <div id='container'>
     <input type="text" value="Bunny" bind:this={clip_input}>
+    <button on:click={initializeMesh}>
+        Initialize Mesh
+    </button>
 </div>
 
 <style>

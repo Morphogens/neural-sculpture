@@ -3,7 +3,6 @@ import math
 import json
 import threading
 from typing import *
-from types import SimpleNamespace
 from datetime import datetime
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -18,7 +17,7 @@ import skimage.measure
 import numpy as np
 from fastapi import FastAPI, WebSocket
 
-from clip_sdf import SDFOptimizer
+from clip_sdf import SDFOptimizer, CLIPSDFConfig
 
 app = fastapi.FastAPI()
 
@@ -26,13 +25,13 @@ polygon_worker = ThreadPoolExecutor(1)
 inferece_worker = ThreadPoolExecutor(1)
 
 # XXX: MAYBE BEST PARAMS EVER!!
-optim_config = SimpleNamespace(
-    learning_rate=0.003,
+optim_config = CLIPSDFConfig(
+    learning_rate=0.01,
     batch_size=1,
     init_tolerance=-0.2,
     iters_per_res=6,
     max_iters_per_cam=4,
-    camera=SimpleNamespace(
+    camera=CLIPSDFConfig(
         max_num_cameras=16,
         init_num_cameras=8,
         mapping_span=math.pi,
@@ -40,7 +39,7 @@ optim_config = SimpleNamespace(
         shuffle_order=False,
         mapping_type="linear",
     ),
-    loss=SimpleNamespace(
+    loss=CLIPSDFConfig(
         image_loss_weight=1 / 1000,
         sdf_loss_weight=0 / 1000,
         lp_loss_weight=0 / 1000,
@@ -49,17 +48,19 @@ optim_config = SimpleNamespace(
 sdf_grid_res_list = [64]
 
 
-def reset_sdf_optimizer():
+def reset_sdf_optimizer(
+    sdf_grid_res_list=[64],
+    sdf_dir="./sdf-grids",
+    sdf_filename="cat.npy",
+):
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
         sdf_grid_res_list=sdf_grid_res_list,
-        sdf_file_path=None, # "./sdf-grids/cat-sdf.npy",
+        sdf_file_path=os.path.join(sdf_dir, sdf_filename),
         on_update=on_update,
     )
 
     return sdf_optimizer
-
-
 
 
 class AsyncResult:
@@ -96,6 +97,7 @@ class UserSession:
         self.coord = None
         self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
         self.run_tick = True
+        self.reset_to_sdf_file = None
 
     async def run(self):
         await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
@@ -105,11 +107,20 @@ class UserSession:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
 
+
+            if cmd['message'] == 'initialize':
+                print("XXX Got cmd", cmd)
+                sdf_filename = cmd['data']
+                if 'npy' not in sdf_filename:
+                    sdf_filename += ".npy"
+
+                self.reset_to_sdf_file = sdf_filename
+
             if cmd['message'] == 'cursor':
                 data_dict = cmd['data']
-                if data_dict is not None:
+                if data_dict:
                     self.coord = data_dict['point']
-                    print("cursor is at", self.coord)
+                    
 
     async def send_loop(self):
         while True:
@@ -134,6 +145,12 @@ class OptimizerWorker:
                 print("No work...")
                 time.sleep(1/30)
                 continue
+
+            if us.reset_to_sdf_file:
+                print(f"Resetting to file {us.reset_to_sdf_file}")
+                sdf_optimizer = reset_sdf_optimizer(sdf_filename=us.reset_to_sdf_file)
+                us.reset_to_sdf_file = None
+
             
             if us.coord is not None:
                 print(f"running optimizer with prompt {us.prompt}")
@@ -157,11 +174,22 @@ async def websocket_endpoint(websocket: WebSocket):
 def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
     print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
     start = datetime.now()
+
+    if sdf.max() <= 0 or sdf.min() >= 0:
+        print("XXX SDF SHAPE EMPTY OR FULL OF NOISE")
+
+    print("XXX marching cubes")
     vertices, faces, normals, _ = skimage.measure.marching_cubes(sdf, level=0)
+
+    print("XXX mesh")
     mesh = trimesh.Trimesh(vertices=vertices,
                            faces=faces,
                            vertex_normals=normals)
+
+    print("XXX obj")
     obj = trimesh.exchange.obj.export_obj(mesh)
+
+    print("XXX dur")
     dur = datetime.now() - start
 
     result = dict(
@@ -174,6 +202,7 @@ def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
         print("XXX Posted message")
     else:
         print("XXX NO NOTIFIER???")
+
     print("Took", dur.total_seconds())
 
 
@@ -188,12 +217,7 @@ def on_update(*args, **kwargs):
 
 
 def run_sdf_clip():
-    sdf_optimizer = SDFOptimizer(
-        config=optim_config,
-        sdf_grid_res_list=sdf_grid_res_list,
-        sdf_file_path="./sdf-grids/cat-sdf.npy",
-        on_update=on_update,
-    )
+    sdf_optimizer = reset_sdf_optimizer()
 
     sdf_optimizer.clip_sdf_optimization(
         prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
@@ -214,7 +238,6 @@ def main():
         port=8005,
         loop="asyncio",
     )
-
 
 
 if __name__ == "__main__":

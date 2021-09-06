@@ -42,6 +42,28 @@ clip_loss = CLIPLoss()
 writer = SummaryWriter()
 
 
+class CLIPSDFConfig(SimpleNamespace):
+    def __init__(
+        self,
+        dictionary=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        if dictionary is not None:
+            for key, value in dictionary.items():
+                if isinstance(value, dict):
+                    self.__setattr__(key, CLIPSDFConfig(value))
+                else:
+                    self.__setattr__(key, value)
+
+    def __getattribute__(self, value):
+        try:
+            return super().__getattribute__(value)
+        except AttributeError:
+            return None
+
+
 class SDFGradWeighter(torch.autograd.Function):
     @staticmethod
     def forward(self, grid):
@@ -65,7 +87,7 @@ sdf_grad_weighter = SDFGradWeighter.apply
 class SDFOptimizer:
     def __init__(
         self,
-        config: SimpleNamespace,
+        config: CLIPSDFConfig,
         sdf_grid_res_list: List[int] = [8, 16, 24, 32, 40, 48, 56, 64],
         out_img_width=256,
         out_img_height=256,
@@ -122,15 +144,24 @@ class SDFOptimizer:
             # grid = np.stack([
             #     np.transpose(grid[:, :, idx]) for idx in range(grid.shape[-1])
             # ])
+            pad_percent = 20
+            pad = int(grid.shape[0] * pad_percent / 100)
+
             grid = Tensor(grid)
+            grid = grid / (grid.abs().max()) * 1
             grid = torch.transpose(grid, 1, 2).contiguous()
+
+            if pad != 0:
+                pad_grid = torch.ones([grid.shape[0] + 2 * pad] * 3).to(device)
+                pad_grid *= grid.max() * 0.1
+                pad_grid[pad:-pad, pad:-pad, pad:-pad] = grid
+                grid = pad_grid
+
             grid = torch.nn.functional.interpolate(
                 grid[None, None, :],
                 size=(self.sdf_grid_res_list[0], ) * 3,
                 mode='trilinear',
             )[0, 0, :]
-            # NOTE: make shape smaller
-            grid += 0.3
 
         grid.requires_grad = True
 
@@ -152,9 +183,15 @@ class SDFOptimizer:
         mapping_offset: float = 0,
         shuffle_order: bool = False,
         mapping_type: str = "linear",
+        cam_scaler: float = None,
     ):
+        if cam_scaler is None:
+            cam_scaler = 7.5
+
+        print("CAM SCALER: ", cam_scaler)
+
         if num_cameras == 1:
-            camera_angle_list = [Tensor([0, 0, 5])]
+            camera_angle_list = [Tensor([0, 0, cam_scaler])]
         else:
             if mapping_type == "linear":
                 # lin_space1 = list(np.linspace(0, 1, num_cameras)**2 * mapping_span/2)
@@ -170,55 +207,96 @@ class SDFOptimizer:
 
                 camera_angle_list = [
                     Tensor([
-                        5 * math.cos(a),
+                        cam_scaler * math.cos(a),
                         0,
-                        5 * math.sin(a),
+                        cam_scaler * math.sin(a),
                     ]) for a in lin_space
                 ]
 
             elif mapping_type == "sdfdiff":
                 camera_angle_list = [
-                    Tensor([0, 0, 5]),  # 0
-                    Tensor([0.1, 5, 0]),
-                    Tensor([5, 0, 0]),
-                    Tensor([0, 0, -5]),
-                    Tensor([0.1, -5, 0]),
-                    Tensor([-5, 0, 0]),  # 5
-                    Tensor([5 / math.sqrt(2), 0, 5 / math.sqrt(2)]),
-                    Tensor([5 / math.sqrt(2), 5 / math.sqrt(2), 0]),
-                    Tensor([0, 5 / math.sqrt(2), 5 / math.sqrt(2)]),
-                    Tensor([-5 / math.sqrt(2), 0, -5 / math.sqrt(2)]),
-                    Tensor([-5 / math.sqrt(2), -5 / math.sqrt(2), 0]),  #10
-                    Tensor([0, -5 / math.sqrt(2), -5 / math.sqrt(2)]),
-                    Tensor([-5 / math.sqrt(2), 0, 5 / math.sqrt(2)]),
-                    Tensor([-5 / math.sqrt(2), 5 / math.sqrt(2), 0]),
-                    Tensor([0, -5 / math.sqrt(2), 5 / math.sqrt(2)]),
-                    Tensor([5 / math.sqrt(2), 0, -5 / math.sqrt(2)]),
-                    Tensor([5 / math.sqrt(2), -5 / math.sqrt(2), 0]),
-                    Tensor([0, 5 / math.sqrt(2), -5 / math.sqrt(2)]),
-                    Tensor(
-                        [5 / math.sqrt(3), 5 / math.sqrt(3),
-                         5 / math.sqrt(3)]),
+                    Tensor([0, 0, cam_scaler]),  # 0
+                    Tensor([0.1, cam_scaler, 0]),
+                    Tensor([cam_scaler, 0, 0]),
+                    Tensor([0, 0, -cam_scaler]),
+                    Tensor([0.1, -cam_scaler, 0]),
+                    Tensor([-cam_scaler, 0, 0]),  # 5
                     Tensor([
-                        5 / math.sqrt(3), 5 / math.sqrt(3), -5 / math.sqrt(3)
+                        cam_scaler / math.sqrt(2), 0, cam_scaler / math.sqrt(2)
                     ]),
                     Tensor([
-                        5 / math.sqrt(3), -5 / math.sqrt(3), 5 / math.sqrt(3)
+                        cam_scaler / math.sqrt(2), cam_scaler / math.sqrt(2), 0
                     ]),
                     Tensor([
-                        -5 / math.sqrt(3), 5 / math.sqrt(3), 5 / math.sqrt(3)
+                        0, cam_scaler / math.sqrt(2), cam_scaler / math.sqrt(2)
                     ]),
                     Tensor([
-                        -5 / math.sqrt(3), -5 / math.sqrt(3), 5 / math.sqrt(3)
+                        -cam_scaler / math.sqrt(2), 0,
+                        -cam_scaler / math.sqrt(2)
                     ]),
                     Tensor([
-                        -5 / math.sqrt(3), 5 / math.sqrt(3), -5 / math.sqrt(3)
+                        -cam_scaler / math.sqrt(2), -cam_scaler / math.sqrt(2),
+                        0
+                    ]),  #10
+                    Tensor([
+                        0, -cam_scaler / math.sqrt(2),
+                        -cam_scaler / math.sqrt(2)
                     ]),
                     Tensor([
-                        5 / math.sqrt(3), -5 / math.sqrt(3), -5 / math.sqrt(3)
+                        -cam_scaler / math.sqrt(2), 0,
+                        cam_scaler / math.sqrt(2)
                     ]),
                     Tensor([
-                        -5 / math.sqrt(3), -5 / math.sqrt(3), -5 / math.sqrt(3)
+                        -cam_scaler / math.sqrt(2), cam_scaler / math.sqrt(2),
+                        0
+                    ]),
+                    Tensor([
+                        0, -cam_scaler / math.sqrt(2),
+                        cam_scaler / math.sqrt(2)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(2), 0,
+                        -cam_scaler / math.sqrt(2)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(2), -cam_scaler / math.sqrt(2),
+                        0
+                    ]),
+                    Tensor([
+                        0, cam_scaler / math.sqrt(2),
+                        -cam_scaler / math.sqrt(2)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(3), cam_scaler / math.sqrt(3),
+                        cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(3), cam_scaler / math.sqrt(3),
+                        -cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(3), -cam_scaler / math.sqrt(3),
+                        cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        -cam_scaler / math.sqrt(3), cam_scaler / math.sqrt(3),
+                        cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        -cam_scaler / math.sqrt(3), -cam_scaler / math.sqrt(3),
+                        cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        -cam_scaler / math.sqrt(3), cam_scaler / math.sqrt(3),
+                        -cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        cam_scaler / math.sqrt(3), -cam_scaler / math.sqrt(3),
+                        -cam_scaler / math.sqrt(3)
+                    ]),
+                    Tensor([
+                        -cam_scaler / math.sqrt(3), -cam_scaler / math.sqrt(3),
+                        -cam_scaler / math.sqrt(3)
                     ]),
                 ]
                 num_cameras = len(camera_angle_list)
@@ -377,12 +455,14 @@ class SDFOptimizer:
                     self.config.camera.init_num_cameras *
                     (sdf_grid_res_iter + 1),
                 )
+
                 camera_angle_list = self.get_camera_angle_list(
                     num_cameras=num_cameras,
                     mapping_span=self.config.camera.mapping_span,
                     mapping_offset=self.config.camera.mapping_offset,
                     shuffle_order=self.config.camera.shuffle_order,
                     mapping_type=self.config.camera.mapping_type,
+                    cam_scaler=self.config.camera.cam_scaler,
                 )
 
                 if sdf_grid_res_iter % 2 == 0:
@@ -486,8 +566,8 @@ class SDFOptimizer:
                             if is_in_jupyter:
 
                                 # NOTE: jupyter notebook display
-                                image_initial_array = gen_img.detach().cpu().numpy(
-                                ) * 255
+                                image_initial_array = gen_img.detach().cpu(
+                                ).numpy() * 255
                                 display(
                                     Image.fromarray(
                                         image_initial_array.astype(np.uint8)))
@@ -574,7 +654,7 @@ class SDFOptimizer:
         self,
         prompt,
         coord,
-        weight_range=6,
+        weight_range=8,
     ):
         coord = [int(c) for c in coord]
         x_coord, y_coord, z_coord = coord
@@ -598,6 +678,7 @@ class SDFOptimizer:
             mapping_offset=math.pi,
             shuffle_order=False,
             mapping_type='linear',
+            cam_scaler=self.config.camera.cam_scaler,
         )
 
         for idx, camera_angle in enumerate(camera_angle_list):
@@ -647,7 +728,9 @@ class SDFOptimizer:
                 image_initial_array = gen_img.detach().cpu().numpy() * 255
                 display(Image.fromarray(image_initial_array.astype(np.uint8)))
 
-
+        # if self.on_update:
+        #     self.on_update(self.grid)
+        #     print("UPDATE SENT")
 
         return self.grid
 
@@ -669,8 +752,11 @@ class SDFOptimizer:
         subprocess.check_call(cmd, shell=True)
 
         num_cameras = 128
+        cam_scaler = 5
         camera_angle_list = [
-            torch.tensor([5 * math.cos(a), 0, 5 * math.sin(a)]).cuda()
+            torch.tensor(
+                [cam_scaler * math.cos(a), 0,
+                 cam_scaler * math.sin(a)]).cuda()
             for a in np.linspace(0, 2 * math.pi, num_cameras)
         ]
 
@@ -705,13 +791,13 @@ class SDFOptimizer:
 
 
 if __name__ == "__main__":
-    optim_config = SimpleNamespace(
+    optim_config = CLIPSDFConfig(
         learning_rate=0.003,
         batch_size=1,
         init_tolerance=-0.2,
         iters_per_res=6,
         max_iters_per_cam=4,
-        camera=SimpleNamespace(
+        camera=CLIPSDFConfig(
             max_num_cameras=16,
             init_num_cameras=8,
             mapping_span=math.pi,
@@ -719,7 +805,7 @@ if __name__ == "__main__":
             shuffle_order=False,
             mapping_type="linear",
         ),
-        loss=SimpleNamespace(
+        loss=CLIPSDFConfig(
             image_loss_weight=1 / 1000,
             sdf_loss_weight=0 / 1000,
             lp_loss_weight=0 / 1000,
@@ -729,7 +815,7 @@ if __name__ == "__main__":
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
         sdf_grid_res_list=[64],
-        sdf_file_path="./sdf-grids/cat-sdf.npy",
+        sdf_file_path="./sdf-grids/cat.npy",
     )
 
     coord = [18.33542332356351, 46.84751561112019, 44.28860300189207]

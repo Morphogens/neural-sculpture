@@ -20,9 +20,9 @@ async function objStringToMesh(objString:string):Promise<Mesh> {
 
 export const mesh:Readable<null | Mesh> = readable(null, (set) => {
     // Start off with a default bunny for testing.
-    objStringToMesh(bunnyOBJ).then((bunny) => {
-        set(bunny)
-    })
+    // objStringToMesh(bunnyOBJ).then((bunny) => {
+    //     set(bunny)
+    // })
     
     socket.addEventListener('message', async (event) => {
         const objString = event.data

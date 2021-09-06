@@ -5,7 +5,9 @@ import threading
 from typing import *
 from types import SimpleNamespace
 from datetime import datetime
+import time
 from concurrent.futures import ThreadPoolExecutor
+from threading import Thread
 
 import torch
 import asyncio
@@ -21,6 +23,7 @@ from clip_sdf import SDFOptimizer
 app = fastapi.FastAPI()
 
 polygon_worker = ThreadPoolExecutor(1)
+inferece_worker = ThreadPoolExecutor(1)
 
 # XXX: MAYBE BEST PARAMS EVER!!
 optim_config = SimpleNamespace(
@@ -43,7 +46,7 @@ optim_config = SimpleNamespace(
         lp_loss_weight=0 / 1000,
     ),
 )
-sdf_grid_res_list = [16, 24, 40, 64]
+sdf_grid_res_list = [64]
 
 
 def reset_sdf_optimizer():
@@ -84,55 +87,75 @@ async def startup_event():
     async_result = AsyncResult()
 
 
-def generate_from_coord(coord: List[int], ):
-    print("CURSOR TXT", coord)
-
-    sdf_optimizer.optimize_coord(
-        coord=coord,
-        prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
-    )
-
-
 class UserSession:
     def __init__(
         self,
         websocket: WebSocket,
     ):
         self.websocket = websocket
+        self.coord = None
+        self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
+        self.run_tick = True
 
-    async def run(self, ):
-        await asyncio.gather(self.listen_loop(), self.send_loop())
+    async def run(self):
+        await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
 
-    async def listen_loop(self, ):
+    async def listen_loop(self):
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
 
-            print("XXX Got cmd", cmd)
-
             if cmd['message'] == 'cursor':
                 data_dict = cmd['data']
                 if data_dict is not None:
-                    coord = data_dict['point']
-                    generate_from_coord(coord)
+                    self.coord = data_dict['point']
+                    print("cursor is at", self.coord)
 
-    async def send_loop(self, ):
+    async def send_loop(self):
         while True:
             model = await async_result.wait()
             print(f"XXX WS sending model, {len(model)//1024}kb")
             await self.websocket.send_text(model)
 
 
+class OptimizerWorker:
+    user_session: Optional[UserSession]
+    def __init__(self):
+        self.user_session = None
+        self.optimizer_thread = Thread(target=self.optimizer_loop, daemon=True)
+        self._running = True
+        self.optimizer_thread.start()
+
+    def optimizer_loop(self):
+        sdf_optimizer = reset_sdf_optimizer()
+        while self._running:
+            us = self.user_session
+            if not us or not us.run_tick:
+                print("No work...")
+                time.sleep(1/30)
+                continue
+            
+            if us.coord is not None:
+                print(f"running optimizer with prompt {us.prompt}")
+                sdf_optimizer.optimize_coord(
+                    coord=us.coord,
+                    prompt=us.prompt
+                )
+
+            # HACK: Test out all code
+            # sdf_optimizer.optimize_coord(self.prompt)
+        print("XXX optimizer stopped")
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     us = UserSession(websocket)
+    optimization_worker.user_session = us
     await us.run()
 
-
-def process_sdf(sdf: np.ndarray):
-    global async_result
-
+def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
+    print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
     start = datetime.now()
     vertices, faces, normals, _ = skimage.measure.marching_cubes(sdf, level=0)
     mesh = trimesh.Trimesh(vertices=vertices,
@@ -140,8 +163,14 @@ def process_sdf(sdf: np.ndarray):
                            vertex_normals=normals)
     obj = trimesh.exchange.obj.export_obj(mesh)
     dur = datetime.now() - start
+
+    result = dict(
+        obj=obj,
+        **loss_dict
+    )
+
     if async_result:
-        async_result.set(obj)
+        async_result.set(json.dumps(result))
         print("XXX Posted message")
     else:
         print("XXX NO NOTIFIER???")
@@ -149,9 +178,9 @@ def process_sdf(sdf: np.ndarray):
 
 
 #%%
-def on_update(mesh: torch.Tensor):
+def on_update(*args, **kwargs):
     print("XXX enqueuing preprocess")
-    polygon_worker.submit(process_sdf, mesh.detach().cpu().numpy())
+    polygon_worker.submit(process_sdf, *args, **kwargs)
 
 
 # sdf loss --> regulates that the shape is smooth
@@ -171,7 +200,7 @@ def run_sdf_clip():
         experiment_name="test",
     )
 
-sdf_optimizer = reset_sdf_optimizer()
+optimization_worker = OptimizerWorker()
 
 def main():
     # thread = threading.Thread(

@@ -427,7 +427,13 @@ class SDFOptimizer:
                             self.optimizer.step()
 
                             if self.on_update:
-                                self.on_update(self.grid)
+                                self.on_update(
+                                    sdf=self.grid.detach().cpu().numpy(),
+                                    loss_dict=dict(
+                                        camera=cam_view_loss.item(),
+                                        image_loss=image_loss.item()
+                                    )
+                                )
 
                             # NOTE: clears jupyter notebook cell output
                             clear_output(wait=True)
@@ -597,7 +603,7 @@ class SDFOptimizer:
         for idx, camera_angle in enumerate(camera_angle_list):
             gen_img = self.generate_image(camera_angle, )
 
-            self.grid.register_hook(lambda grad: grad * weight_grid.float())
+            # self.grid.register_hook(lambda grad: grad * weight_grid.float())
             image_loss, sdf_loss, lp_loss = self.compute_losses(
                 gen_img,
                 prompt,
@@ -608,6 +614,16 @@ class SDFOptimizer:
             self.optimizer.zero_grad()
             cam_view_loss.backward()
             self.optimizer.step()
+            if self.on_update:
+                self.on_update(
+                    sdf=self.grid.detach().cpu().numpy(),
+                    loss_dict=dict(
+                        camera=cam_view_loss.item(),
+                        image_loss=image_loss.item(),
+                        sdf_loss=sdf_loss.item(),
+                        
+                    )
+                )
 
             self.results_dir = self.create_experiment_dir(
                 experiment_name='coord', )
@@ -631,8 +647,7 @@ class SDFOptimizer:
                 image_initial_array = gen_img.detach().cpu().numpy() * 255
                 display(Image.fromarray(image_initial_array.astype(np.uint8)))
 
-        if self.on_update:
-            self.on_update(self.grid)
+
 
         return self.grid
 

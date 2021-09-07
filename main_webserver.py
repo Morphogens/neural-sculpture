@@ -140,9 +140,10 @@ class UserSession:
                 if data:
                     self.coord = data['point']
             
-            elif topic == "sculp_mode":
+            elif topic == "sculp_settings":
                 if data:
-                    self.run_tick = data["is_sculping"]
+                    self.run_tick = data["sculp_enabled"]
+                    self.prompt = data["prompt"]
 
 >>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
 

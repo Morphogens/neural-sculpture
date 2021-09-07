@@ -26,6 +26,7 @@
     "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.0",
     "d3-selection": "^3.0.0",
+    "svelte-knobby": "^0.3.1",
     "three": "^0.132.2",
     "ts-debounce": "^3.0.0"
   }

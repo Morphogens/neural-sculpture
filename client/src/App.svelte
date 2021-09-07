@@ -6,9 +6,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { socket, socketOpen } from './stores/socket'
 import { lossStore, meshStore as mesh } from './stores/mesh'
 import LossHistory from "./LossHistory.svelte";
+import * as knobby from 'svelte-knobby';
+
+// sent to server as sculp_settings
+const sculpControls = knobby.panel({
+    sculp_enabled: false,
+    prompt: "bunny",
+});
+
 
 ////////////////////////////////////////////////////////////////////////////////
-let clip_input:HTMLInputElement
 let mouseDown = false
 let mouseClicked = false
 let shiftDown = false
@@ -156,11 +163,13 @@ $: sphereColorName = mouseDown ? (shiftDown ? 'negative' : 'positive') : 'inacti
 $: sphere.material.color= sphereColors[sphereColorName]
 ////////////////////////////////////////////////////////////////////////////////
 
+const submitSettings = debounce((settings:any) => {
+    messageServer("sculp_settings", settings)
+}, 100);
+
+$: submitSettings($sculpControls);
+
 onMount(() => {
-    clip_input.onchange = () => {
-        console.log('New text value', clip_input.value)
-        messageServer('prompt', clip_input.value)
-    }
     loop()
 })
 
@@ -172,8 +181,7 @@ let isSculping = false;
 function onKeyDown(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
     if (e.key.toLowerCase() === "t") {
-        isSculping = !isSculping;
-        messageServer("sculp_mode", {is_sculping: isSculping})
+        $sculpControls.sculp_enabled = !$sculpControls.sculp_enabled
     };
 
 }
@@ -200,16 +208,13 @@ function onKeyUp(e: KeyboardEvent) {
     <div class="connection">
         <div class="indicator" class:live={$socketOpen} class:closed={!$socketOpen}/>Connection: {$socketOpen ? "Live" : "Disconnected" }
     </div>
-    <div class="sculp-mode">
-        <div class="indicator" class:live={isSculping} class:closed={!isSculping}/>Sculp Mode: {isSculping ? "On" : "Off" }
-    </div>
-    <input type="text" value="Bunny" bind:this={clip_input}>
     <button on:click={resetClicked}>
         <div>Reset Mesh + Optimizer</div>
          <div>(takes a few seconds)</div>
     </button>
     <LossHistory points={$lossStore["camera"]}/>
 </div>
+{$sculpControls}
 
 <style>
     .instructions {

@@ -3,8 +3,62 @@ import { onMount } from 'svelte'
 import * as THREE from 'three'
 import { debounce } from 'ts-debounce'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; 
-import { socket, socketOpen } from './stores/socket'
-import { mesh } from './stores/mesh'
+import ioclient from 'socket.io-client';
+
+// import { mesh } from './stores/mesh'
+
+const serverIP = "127.0.0.1"
+const apiPort = "8005"
+const serverURL = `http://${serverIP}:${apiPort}`;
+
+// const socket = require('socket.io-client')(serverURL, {
+//   reconnection: true,
+//   reconnectionDelay: 10000
+// });
+
+const clientSocket = ioclient(serverURL);
+
+clientSocket.on('connect', (data) => {
+    console.log('Connected to Socket');
+});
+
+clientSocket.on('event_name', (data) => {
+    console.log("-----------------received event data from python flask srver");
+});
+
+//either 'io server disconnect' or 'io client disconnect'
+clientSocket.on('disconnect', (reason) => {
+    console.log("client disconnected");
+    if (reason === 'io server disconnect') {
+      // the disconnection was initiated by the server, you need to reconnect manually
+      console.log("server disconnected the client, trying to reconnect");
+      clientSocket.connect();
+    }else{
+        console.log("trying to reconnect agan with server");
+    }
+    // else the socket will automatically try to reconnect
+  });
+
+clientSocket.on('error', (error) => {
+    console.log(error);
+});
+
+let lastMesh = null
+
+clientSocket.on('mesh', (data) => {
+    console.log("Back from API: ",data);
+    
+    if (lastMesh) {
+        scene.remove(lastMesh)
+    }
+    if (data) {
+        console.log('Got new mesh')
+        scene.add(data)
+        lastMesh = data
+    }
+});
+
+let mesh = null
 
 ////////////////////////////////////////////////////////////////////////////////
 let clip_input:HTMLInputElement
@@ -72,23 +126,21 @@ scene.add( sphere )
 ////////////////////////////////////////////////////////////////////////////////
 
 function messageServer(message:string, data:any) {
-    if ($socketOpen) {
-        socket.send(JSON.stringify({ message, data }))
-    }
+    clientSocket.emit(message, JSON.stringify(data),)
 }
 
 // Listen for new meshes from the server.
-let lastMesh = null
-mesh.subscribe($mesh => {
-    if (lastMesh) {
-        scene.remove(lastMesh)
-    }
-    if ($mesh) {
-        console.log('Got new mesh')
-        scene.add($mesh)
-        lastMesh = $mesh
-    }
-})
+// let lastMesh = l
+// mesh.subscribe($mesh => {
+//     if (lastMesh) {
+//         scene.remove(lastMesh)
+//     }
+//     if ($mesh) {
+//         console.log('Got new mesh')
+//         scene.add($mesh)
+//         lastMesh = $mesh
+//     }
+// })
 
 const sendNewCamera = debounce(() => {
     messageServer('camera', camera.position.toArray())
@@ -102,7 +154,7 @@ function loop(): void {
 
 function update(): void {
     raycast()
-    if ($socketOpen && !camera.position.equals(lastCamera)) {
+    if (!camera.position.equals(lastCamera)) {
         sendNewCamera()
         lastCamera.copy(camera.position)
     }
@@ -122,10 +174,10 @@ function raycast() {
             sphere.position.copy(point)
             document.body.style.cursor = 'none'
             if (mouseClicked){
-                messageServer('cursor', {
+                messageServer('optimizeCoord', {
                     mouseClicked,
                     additive: !shiftDown,
-                    point: point.toArray()
+                    coord: point.toArray()
                 })
                 console.log("COORD INFO SENT TO THE SERVER")
                 console.log("COORD ", point.toArray())
@@ -164,7 +216,12 @@ onMount(() => {
 })
 
 function initializeMesh() {
-    messageServer('initialize', '12140_Skull_v3_L2')
+    console.log("INITIALIZING MESH")
+    messageServer('initialize', {sdfFilename: '12140_Skull_v3_L2.npy',},)
+}
+
+function runOptimization() {
+    messageServer('runOptimization', '')
 }
 
 </script>
@@ -181,6 +238,9 @@ function initializeMesh() {
     <input type="text" value="Bunny" bind:this={clip_input}>
     <button on:click={initializeMesh}>
         Initialize Mesh
+    </button>
+    <button on:click={runOptimization}>
+        Optimize
     </button>
 </div>
 

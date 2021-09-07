@@ -98,12 +98,13 @@ class UserSession:
         self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
         self.run_tick = True
         self.reset_to_sdf_file = None
-        self.sculping = False
+        self.sculpting = False
 
     async def run(self):
         await asyncio.wait(
             [self.listen_loop(), self.send_loop()],
             return_when=asyncio.FIRST_COMPLETED)
+        self.run_tick = False  # stop running optimization if we die
 
     async def listen_loop(self):
         while True:
@@ -126,14 +127,16 @@ class UserSession:
                 if data:
                     self.coord = data['point']
 
-            elif topic == "sculp_mode":
+            elif topic == "sculp_settings":
                 if data:
-                    self.run_tick = data["is_sculping"]
+                    # self.run_tick = data["sculp_enabled"]
+                    self.sculpting = data["sculp_enabled"]
+                    self.prompt = data["prompt"]
 
-                self.sculping = True
+                # self.sculpting = True
 
-            elif topic == "stop_sculp_mode":
-                self.sculping = False
+            # elif topic == "stop_sculp_mode":
+            #     self.sculpting = False
 
     async def send_loop(self):
         while True:
@@ -171,7 +174,7 @@ class OptimizerWorker:
                     dict(camera=0, image_loss=0),
                 )
 
-            if us.sculping:
+            if us.sculpting:
                 print(f"running optimizer with prompt {us.prompt}")
                 print(f"running optimizer with coord {us.coord}")
                 # us.coord = [

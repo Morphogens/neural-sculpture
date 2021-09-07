@@ -172,14 +172,25 @@ let isSculping = false;
 function onKeyDown(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
     if (e.key.toLowerCase() === "t") {
-        isSculping = !isSculping;
-        messageServer("sculp_mode", {is_sculping: isSculping})
+        if (!isSculping){
+            console.log("SCUlPTING!")
+
+            isSculping = true;
+            messageServer("sculp_mode", {is_sculping: isSculping})
+        }
     };
 
 }
 
 function onKeyUp(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
+    if (e.key.toLowerCase() === "t") {
+        console.log("SCUlPTING STOPPED!")
+        
+        isSculping = false;
+        messageServer("stop_sculp_mode", {is_sculping: isSculping})
+    };
+
 }
 
 </script>

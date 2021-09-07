@@ -98,53 +98,42 @@ class UserSession:
         self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
         self.run_tick = True
         self.reset_to_sdf_file = None
+        self.sculping = False
 
     async def run(self):
-<<<<<<< HEAD
         await asyncio.wait(
             [self.listen_loop(), self.send_loop()],
             return_when=asyncio.FIRST_COMPLETED)
-=======
-        await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
-        self.run_tick = False  # stop running optimization if we die
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
 
     async def listen_loop(self):
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
-            
+
             topic = cmd['message']
             data = cmd['data']
 
-<<<<<<< HEAD
-            if cmd['message'] == 'initialize':
-=======
-
             if topic == 'initialize':
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
                 print("XXX Got cmd", cmd)
+
                 sdf_filename = data
                 if 'npy' not in sdf_filename:
                     sdf_filename += ".npy"
 
                 self.reset_to_sdf_file = sdf_filename
 
-<<<<<<< HEAD
-            if cmd['message'] == 'cursor':
-                data_dict = cmd['data']
-                if data_dict:
-                    self.coord = data_dict['point']
-=======
             elif topic == 'cursor':
                 if data:
                     self.coord = data['point']
-            
+
             elif topic == "sculp_mode":
                 if data:
                     self.run_tick = data["is_sculping"]
 
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
+                self.sculping = True
+
+            elif topic == "stop_sculp_mode":
+                self.sculping = False
 
     async def send_loop(self):
         while True:
@@ -173,22 +162,23 @@ class OptimizerWorker:
 
             if us.reset_to_sdf_file:
                 print(f"Resetting to file {us.reset_to_sdf_file}")
+
                 sdf_optimizer = reset_sdf_optimizer(
-                    sdf_filename=us.reset_to_sdf_file)
+                    sdf_filename=us.reset_to_sdf_file, )
                 us.reset_to_sdf_file = None
                 process_sdf(
                     sdf_optimizer.grid.detach().cpu().numpy(),
                     dict(camera=0, image_loss=0),
                 )
 
-            if us.coord is not None:
+            if us.sculping:
                 print(f"running optimizer with prompt {us.prompt}")
                 print(f"running optimizer with coord {us.coord}")
                 # us.coord = [
                 #     18.33542332356351, 46.84751561112019, 44.28860300189207
                 # ]
                 sdf_optimizer.optimize_coord(coord=us.coord, prompt=us.prompt)
-                us.coord = None
+                # us.coord = None
 
             # HACK: Test out all code
             # sdf_optimizer.optimize_coord(self.prompt)

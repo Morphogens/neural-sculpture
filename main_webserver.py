@@ -100,13 +100,14 @@ class UserSession:
         self.reset_to_sdf_file = None
 
     async def run(self):
-        await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
+        await asyncio.wait(
+            [self.listen_loop(), self.send_loop()],
+            return_when=asyncio.FIRST_COMPLETED)
 
     async def listen_loop(self):
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
-
 
             if cmd['message'] == 'initialize':
                 print("XXX Got cmd", cmd)
@@ -120,7 +121,6 @@ class UserSession:
                 data_dict = cmd['data']
                 if data_dict:
                     self.coord = data_dict['point']
-                    
 
     async def send_loop(self):
         while True:
@@ -131,6 +131,7 @@ class UserSession:
 
 class OptimizerWorker:
     user_session: Optional[UserSession]
+
     def __init__(self):
         self.user_session = None
         self.optimizer_thread = Thread(target=self.optimizer_loop, daemon=True)
@@ -143,21 +144,27 @@ class OptimizerWorker:
             us = self.user_session
             if not us or not us.run_tick:
                 print("No work...")
-                time.sleep(1/30)
+                time.sleep(1 / 30)
                 continue
 
             if us.reset_to_sdf_file:
                 print(f"Resetting to file {us.reset_to_sdf_file}")
-                sdf_optimizer = reset_sdf_optimizer(sdf_filename=us.reset_to_sdf_file)
+                sdf_optimizer = reset_sdf_optimizer(
+                    sdf_filename=us.reset_to_sdf_file)
                 us.reset_to_sdf_file = None
+                process_sdf(
+                    sdf_optimizer.grid.detach().cpu().numpy(),
+                    dict(camera=0, image_loss=0),
+                )
 
-            
             if us.coord is not None:
                 print(f"running optimizer with prompt {us.prompt}")
-                sdf_optimizer.optimize_coord(
-                    coord=us.coord,
-                    prompt=us.prompt
-                )
+                print(f"running optimizer with coord {us.coord}")
+                # us.coord = [
+                #     18.33542332356351, 46.84751561112019, 44.28860300189207
+                # ]
+                sdf_optimizer.optimize_coord(coord=us.coord, prompt=us.prompt)
+                us.coord = None
 
             # HACK: Test out all code
             # sdf_optimizer.optimize_coord(self.prompt)
@@ -170,6 +177,7 @@ async def websocket_endpoint(websocket: WebSocket):
     us = UserSession(websocket)
     optimization_worker.user_session = us
     await us.run()
+
 
 def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
     print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
@@ -192,10 +200,7 @@ def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
     print("XXX dur")
     dur = datetime.now() - start
 
-    result = dict(
-        obj=obj,
-        **loss_dict
-    )
+    result = dict(obj=obj, **loss_dict)
 
     if async_result:
         async_result.set(json.dumps(result))
@@ -224,7 +229,9 @@ def run_sdf_clip():
         experiment_name="test",
     )
 
+
 optimization_worker = OptimizerWorker()
+
 
 def main():
     # thread = threading.Thread(

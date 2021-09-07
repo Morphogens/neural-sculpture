@@ -101,26 +101,33 @@ class UserSession:
 
     async def run(self):
         await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
+        self.run_tick = False  # stop running optimization if we die
 
     async def listen_loop(self):
         while True:
             cmd = await self.websocket.receive_text()
             cmd = json.loads(cmd)
+            
+            topic = cmd['message']
+            data = cmd['data']
 
 
-            if cmd['message'] == 'initialize':
+            if topic == 'initialize':
                 print("XXX Got cmd", cmd)
-                sdf_filename = cmd['data']
+                sdf_filename = data
                 if 'npy' not in sdf_filename:
                     sdf_filename += ".npy"
 
                 self.reset_to_sdf_file = sdf_filename
 
-            if cmd['message'] == 'cursor':
-                data_dict = cmd['data']
-                if data_dict:
-                    self.coord = data_dict['point']
-                    
+            elif topic == 'cursor':
+                if data:
+                    self.coord = data['point']
+            
+            elif topic == "sculp_mode":
+                if data:
+                    self.run_tick = data["is_sculping"]
+
 
     async def send_loop(self):
         while True:

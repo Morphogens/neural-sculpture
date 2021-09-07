@@ -118,6 +118,8 @@ class SDFOptimizer:
         self.update_res(self.sdf_grid_res_list[0])
         self.initialize_optim()
 
+        self.coord_hook = None
+
         # wandb.init(
         #     project='neural-sculpture',
         #     entity='viccpoes',
@@ -511,8 +513,7 @@ class SDFOptimizer:
                                     sdf=self.grid.detach().cpu().numpy(),
                                     loss_dict=dict(
                                         camera=cam_view_loss.item(),
-                                        image_loss=image_loss.item()
-                                    )
+                                        image_loss=image_loss.item()),
                                 )
 
                             # NOTE: clears jupyter notebook cell output
@@ -684,7 +685,11 @@ class SDFOptimizer:
         for idx, camera_angle in enumerate(camera_angle_list):
             gen_img = self.generate_image(camera_angle, )
 
-            # self.grid.register_hook(lambda grad: grad * weight_grid.float())
+            if self.coord_hook is not None:
+                self.coord_hook.remove()
+
+            self.coord_hook = self.grid.register_hook(
+                lambda grad: grad * weight_grid.float())
             image_loss, sdf_loss, lp_loss = self.compute_losses(
                 gen_img,
                 prompt,
@@ -696,15 +701,13 @@ class SDFOptimizer:
             cam_view_loss.backward()
             self.optimizer.step()
             if self.on_update:
-                self.on_update(
-                    sdf=self.grid.detach().cpu().numpy(),
-                    loss_dict=dict(
-                        camera=cam_view_loss.item(),
-                        image_loss=image_loss.item(),
-                        sdf_loss=sdf_loss.item(),
-                        
-                    )
-                )
+                print("COORD", coord)
+                self.on_update(sdf=self.grid.detach().cpu().numpy(),
+                               loss_dict=dict(
+                                   camera=cam_view_loss.item(),
+                                   image_loss=image_loss.item(),
+                                   sdf_loss=sdf_loss.item(),
+                               ))
 
             self.results_dir = self.create_experiment_dir(
                 experiment_name='coord', )

@@ -168,6 +168,20 @@ function resetClicked() {
     messageServer("initialize", "12140_Skull_v3_L2.npy")
 }
 
+let isSculping = false;
+function onKeyDown(e: KeyboardEvent) {
+    shiftDown = e.shiftKey;
+    if (e.key.toLowerCase() === "t") {
+        isSculping = !isSculping;
+        messageServer("sculp_mode", {is_sculping: isSculping})
+    };
+
+}
+
+function onKeyUp(e: KeyboardEvent) {
+    shiftDown = e.shiftKey;
+}
+
 </script>
 
 <svelte:body
@@ -175,12 +189,19 @@ function resetClicked() {
     on:mousedown={() => mouseDown=true}
     on:click={() => mouseClicked=true}
     on:mouseup={() => mouseDown=false}
-    on:keydown={(event) => shiftDown = event.shiftKey}
-    on:keyup={(event) => shiftDown = event.shiftKey}
+    on:keydown={onKeyDown}
+    on:keyup={onKeyUp}
 />
 <div id='container'>
+    <div class="instructions">
+        <div>instructions</div>
+        <p>Press "T" to toggle sculping mode on/off. Click an area to target the sculping</p>
+    </div>
     <div class="connection">
         <div class="indicator" class:live={$socketOpen} class:closed={!$socketOpen}/>Connection: {$socketOpen ? "Live" : "Disconnected" }
+    </div>
+    <div class="sculp-mode">
+        <div class="indicator" class:live={isSculping} class:closed={!isSculping}/>Sculp Mode: {isSculping ? "On" : "Off" }
     </div>
     <input type="text" value="Bunny" bind:this={clip_input}>
     <button on:click={resetClicked}>
@@ -191,6 +212,11 @@ function resetClicked() {
 </div>
 
 <style>
+    .instructions {
+        background: white;
+        padding: 4px;
+        margin: 1px;
+    }
     .connection {
         background: white;
         display: flex;
@@ -198,6 +224,12 @@ function resetClicked() {
         padding: 4px;
     }
 
+    .sculp-mode {
+        background: white;
+        display: flex;
+        align-items: center;
+        padding: 4px;
+    }
     .indicator {
         width: 10px;
         height: 10px;
@@ -219,6 +251,8 @@ function resetClicked() {
     #container {
         width: 200px;
         position: absolute;
+        display: flex;
+        flex-flow: column;
     }
         
     input[type=text] {

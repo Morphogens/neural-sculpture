@@ -100,14 +100,8 @@ class UserSession:
         self.reset_to_sdf_file = None
 
     async def run(self):
-<<<<<<< HEAD
-        await asyncio.wait(
-            [self.listen_loop(), self.send_loop()],
-            return_when=asyncio.FIRST_COMPLETED)
-=======
         await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
         self.run_tick = False  # stop running optimization if we die
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
 
     async def listen_loop(self):
         while True:
@@ -117,12 +111,8 @@ class UserSession:
             topic = cmd['message']
             data = cmd['data']
 
-<<<<<<< HEAD
-            if cmd['message'] == 'initialize':
-=======
 
             if topic == 'initialize':
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
                 print("XXX Got cmd", cmd)
                 sdf_filename = data
                 if 'npy' not in sdf_filename:
@@ -130,12 +120,6 @@ class UserSession:
 
                 self.reset_to_sdf_file = sdf_filename
 
-<<<<<<< HEAD
-            if cmd['message'] == 'cursor':
-                data_dict = cmd['data']
-                if data_dict:
-                    self.coord = data_dict['point']
-=======
             elif topic == 'cursor':
                 if data:
                     self.coord = data['point']
@@ -145,7 +129,6 @@ class UserSession:
                     self.run_tick = data["sculp_enabled"]
                     self.prompt = data["prompt"]
 
->>>>>>> 006fd0cf35fd1106ce5a207e9e308e22bb180226
 
     async def send_loop(self):
         while True:

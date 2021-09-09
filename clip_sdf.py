@@ -139,16 +139,18 @@ class SDFOptimizer:
         self.grid_res_x = self.grid_res_y = self.grid_res_z = grid_res
         self.voxel_size = Tensor([4. / (self.grid_res_x - 1)])
 
-        if self.grid is not None:
-            with torch.no_grad():
-                # Update the sdf grid
-                self.grid = torch.nn.functional.interpolate(
-                    self.grid[None, None, :],
-                    size=(grid_res, ) * 3,
-                    mode='trilinear',
-                )[0, 0, :]
+    def resize_grid(
+        self, grid_res: int,
+    ):
+        with torch.no_grad():
+            # Update the sdf grid
+            self.grid = torch.nn.functional.interpolate(
+                self.grid[None, None, :],
+                size=(grid_res, ) * 3,
+                mode='trilinear',
+            )[0, 0, :]
 
-            self.grid.requires_grad = True
+
 
     def generate_initial_grid(self, ):
         if self.sdf_file_path is None:
@@ -601,6 +603,9 @@ class SDFOptimizer:
 
             update_grid_res = self.sdf_grid_res_list[grid_res_idx + 1]
             self.update_res(grid_res=update_grid_res, )
+            self.resize_grid(grid_res=update_grid_res, )
+            
+            self.grid.requires_grad = True
 
             optim_state = self.optimizer.state_dict()['state']
 

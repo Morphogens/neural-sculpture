@@ -11,7 +11,25 @@ import * as knobby from 'svelte-knobby';
 // sent to server as sculp_settings
 const sculpControls = knobby.panel({
     sculp_enabled: false,
-    prompt: "bunny",
+    prompt: "A sculpture of a bunny rabbit",
+    learning_rate: 1,
+    batch_size: 1,
+    current_coord: "none",
+    optimization_region: {
+        $label: 'optimization_region',
+        value: 6,
+        min: 2,
+        max: 64,
+        step: 2
+    },
+    grid_resolution: {
+        $label: 'grid_resolution',
+        value: 64,
+        min: 4,
+        max: 64,
+        step: 4
+    },
+    reset_mesh: () => {messageServer("initialize", "cat.npy")},
 });
 
 
@@ -88,6 +106,9 @@ function messageServer(message:string, data:any) {
 // Listen for new meshes from the server.
 let lastMesh = null
 mesh.subscribe($mesh => {
+    if (lastMesh == null){
+        messageServer("initialize", "cat.npy")
+    }
     if (lastMesh) {
         scene.remove(lastMesh)
     }
@@ -130,7 +151,7 @@ function raycast() {
             sphere.position.copy(point)
             document.body.style.cursor = 'none'
             if (mouseClicked){
-                messageServer('cursor', {
+                messageServer('coord', {
                     mouseClicked,
                     additive: !shiftDown,
                     point: point.toArray()
@@ -138,12 +159,14 @@ function raycast() {
                 console.log("COORD INFO SENT TO THE SERVER")
                 console.log("COORD ", point.toArray())
                 mouseClicked = false
-
+                
+                const intCoord = point.toArray().reduce((total, x) => {return total + parseInt(x).toString() + ", "}, "")
+                $sculpControls.current_coord = intCoord
             }
+
         } else {
             mouseOverMesh = false
             document.body.style.cursor = 'default'
-            // messageServer('cursor', null)
         }
     }
 }

@@ -115,8 +115,16 @@ class SDFOptimizer:
         self.grid_res_x = self.grid_res_y = self.grid_res_z = None
         self.voxel_size = None
 
+        self.grid = None
         self.update_res(self.sdf_grid_res_list[0])
-        self.initialize_optim()
+
+        self.grid = self.generate_initial_grid()
+        self.learning_rate = self.config.learning_rate
+        self.optimizer = torch.optim.Adam(
+            [self.grid],
+            lr=self.config.learning_rate,
+            eps=1e-8,
+        )
 
         # wandb.init(
         #     project='neural-sculpture',
@@ -130,6 +138,17 @@ class SDFOptimizer:
     ):
         self.grid_res_x = self.grid_res_y = self.grid_res_z = grid_res
         self.voxel_size = Tensor([4. / (self.grid_res_x - 1)])
+
+        if self.grid is not None:
+            with torch.no_grad():
+                # Update the sdf grid
+                self.grid = torch.nn.functional.interpolate(
+                    self.grid[None, None, :],
+                    size=(grid_res, ) * 3,
+                    mode='trilinear',
+                )[0, 0, :]
+
+            self.grid.requires_grad = True
 
     def generate_initial_grid(self, ):
         if self.sdf_file_path is None:
@@ -166,15 +185,6 @@ class SDFOptimizer:
         grid.requires_grad = True
 
         return grid
-
-    def initialize_optim(self, ):
-        self.grid = self.generate_initial_grid()
-        self.learning_rate = self.config.learning_rate
-        self.optimizer = torch.optim.Adam(
-            [self.grid],
-            lr=self.config.learning_rate,
-            eps=1e-8,
-        )
 
     def get_camera_angle_list(
         self,
@@ -592,15 +602,6 @@ class SDFOptimizer:
             update_grid_res = self.sdf_grid_res_list[grid_res_idx + 1]
             self.update_res(grid_res=update_grid_res, )
 
-            with torch.no_grad():
-                # Update the sdf grid
-                self.grid = torch.nn.functional.interpolate(
-                    self.grid[None, None, :],
-                    size=(update_grid_res, ) * 3,
-                    mode='trilinear',
-                )[0, 0, :]
-
-            self.grid.requires_grad = True
             optim_state = self.optimizer.state_dict()['state']
 
             exp_avg = optim_state[0]['exp_avg'].clone()
@@ -617,7 +618,6 @@ class SDFOptimizer:
                 mode='trilinear',
             )[0, 0, :]
 
-            self.learning_rate /= 1.2
             self.optimizer = torch.optim.AdamW(
                 [self.grid],
                 lr=self.learning_rate,
@@ -626,6 +626,8 @@ class SDFOptimizer:
             )
 
             self.optimizer.state_dict()['state'] = optim_state
+
+            self.learning_rate /= 1.2
 
             grid_res_idx += 1
 

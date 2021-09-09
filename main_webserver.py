@@ -26,7 +26,7 @@ inferece_worker = ThreadPoolExecutor(1)
 
 # XXX: MAYBE BEST PARAMS EVER!!
 optim_config = CLIPSDFConfig(
-    learning_rate=0.01,
+    learning_rate=0.001,
     batch_size=1,
     init_tolerance=-0.2,
     iters_per_res=6,
@@ -41,8 +41,8 @@ optim_config = CLIPSDFConfig(
     ),
     loss=CLIPSDFConfig(
         image_loss_weight=1 / 1000,
-        sdf_loss_weight=0 / 1000,
-        lp_loss_weight=0 / 1000,
+        sdf_loss_weight=1 / 1000,
+        lp_loss_weight=1 / 1000,
     ),
 )
 sdf_grid_res_list = [64]
@@ -97,8 +97,10 @@ class UserSession:
         self.coord = None
         self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
         self.run_tick = True
-        self.reset_to_sdf_file = None
+        self.sdf_dir = "./sdf-grids"
+        self.sdf_filename = None
         self.sculpting = False
+        self.sdf_optimizer = reset_sdf_optimizer()
 
     async def run(self):
         await asyncio.wait(
@@ -121,9 +123,9 @@ class UserSession:
                 if 'npy' not in sdf_filename:
                     sdf_filename += ".npy"
 
-                self.reset_to_sdf_file = sdf_filename
+                self.sdf_filename = sdf_filename
 
-            elif topic == 'cursor':
+            elif topic == 'coord':
                 if data:
                     self.coord = data['point']
 
@@ -133,10 +135,18 @@ class UserSession:
                     self.sculpting = data["sculp_enabled"]
                     self.prompt = data["prompt"]
 
-                # self.sculpting = True
+                    learning_rate = data["learning_rate"] * 0.001
+                    self.sdf_optimizer.optimizer.learning_rate = learning_rate
 
-            # elif topic == "stop_sculp_mode":
-            #     self.sculpting = False
+                    batch_size = data["batch_size"]
+                    self.sdf_optimizer.config.batch_size = batch_size
+
+                    grid_resolution = data["grid_resolution"]
+                    self.sdf_optimizer.sdf_grid_res_list = [grid_resolution]
+                    self.sdf_optimizer.update_res(grid_resolution)
+
+                    # optimization_region = data["optimization_region"]
+                    # self.sdf_optimizer.optimization_region = optimization_region
 
     async def send_loop(self):
         while True:
@@ -155,7 +165,6 @@ class OptimizerWorker:
         self.optimizer_thread.start()
 
     def optimizer_loop(self):
-        sdf_optimizer = reset_sdf_optimizer()
         while self._running:
             us = self.user_session
             if not us or not us.run_tick:
@@ -163,12 +172,16 @@ class OptimizerWorker:
                 time.sleep(1 / 30)
                 continue
 
-            if us.reset_to_sdf_file:
-                print(f"Resetting to file {us.reset_to_sdf_file}")
+            sdf_optimizer = us.sdf_optimizer
 
-                sdf_optimizer = reset_sdf_optimizer(
-                    sdf_filename=us.reset_to_sdf_file, )
-                us.reset_to_sdf_file = None
+            if us.sdf_filename:
+                print(f"Resetting to file {us.sdf_filename}")
+                sdf_optimizer.sdf_file_path = os.path.join(
+                    us.sdf_dir, us.sdf_filename)
+                sdf_optimizer.generate_initial_grid()
+
+                us.sdf_filename = None
+
                 process_sdf(
                     sdf_optimizer.grid.detach().cpu().numpy(),
                     dict(camera=0, image_loss=0),
@@ -177,11 +190,8 @@ class OptimizerWorker:
             if us.sculpting:
                 print(f"running optimizer with prompt {us.prompt}")
                 print(f"running optimizer with coord {us.coord}")
-                # us.coord = [
-                #     18.33542332356351, 46.84751561112019, 44.28860300189207
-                # ]
+
                 sdf_optimizer.optimize_coord(coord=us.coord, prompt=us.prompt)
-                # us.coord = None
 
             # HACK: Test out all code
             # sdf_optimizer.optimize_coord(self.prompt)
@@ -234,18 +244,13 @@ def on_update(*args, **kwargs):
     polygon_worker.submit(process_sdf, *args, **kwargs)
 
 
-# sdf loss --> regulates that the shape is smooth
-# lp loss --> regulates that the elements are altogether
+# def run_sdf_clip():
+#     sdf_optimizer = reset_sdf_optimizer()
 
-
-def run_sdf_clip():
-    sdf_optimizer = reset_sdf_optimizer()
-
-    sdf_optimizer.clip_sdf_optimization(
-        prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
-        experiment_name="test",
-    )
-
+#     sdf_optimizer.clip_sdf_optimization(
+#         prompt="3D bunny rabbit gray mesh rendered with maya zbrush",
+#         experiment_name="test",
+#     )
 
 optimization_worker = OptimizerWorker()
 

@@ -16,7 +16,7 @@ import uvicorn
 import skimage.measure
 import numpy as np
 from fastapi import FastAPI, WebSocket
-
+from loguru import logger
 from clip_sdf import SDFOptimizer, CLIPSDFConfig
 
 app = fastapi.FastAPI()
@@ -192,36 +192,36 @@ def process_sdf(sdf: np.ndarray, loss_dict: Dict[str, float]):
     start = datetime.now()
 
     if sdf.max() <= 0 or sdf.min() >= 0:
-        print("XXX SDF SHAPE EMPTY OR FULL OF NOISE")
+        logger.warning("SDF SHAPE EMPTY OR FULL OF NOISE")
 
-    print("XXX marching cubes")
+    logger.debug("XXX marching cubes")
     vertices, faces, normals, _ = skimage.measure.marching_cubes(sdf, level=0)
 
-    print("XXX mesh")
+    logger.debug("XXX mesh")
     mesh = trimesh.Trimesh(vertices=vertices,
                            faces=faces,
                            vertex_normals=normals)
 
-    print("XXX obj")
+    logger.debug("XXX obj")
     obj = trimesh.exchange.obj.export_obj(mesh)
 
-    print("XXX dur")
+    logger.debug("XXX dur")
     dur = datetime.now() - start
 
     result = dict(obj=obj, **loss_dict)
 
     if async_result:
         async_result.set(json.dumps(result))
-        print("XXX Posted message")
+        logger.info("XXX Posted message")
     else:
-        print("XXX NO NOTIFIER???")
+        logger.info("XXX NO NOTIFIER???")
 
     print("Took", dur.total_seconds())
 
 
 #%%
 def on_update(*args, **kwargs):
-    print("XXX enqueuing preprocess")
+    logger.info("XXX enqueuing preprocess")
     polygon_worker.submit(process_sdf, *args, **kwargs)
 
 

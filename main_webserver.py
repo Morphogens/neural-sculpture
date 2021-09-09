@@ -116,8 +116,10 @@ class UserSession:
             topic = cmd['message']
             data = cmd['data']
 
+            print("XXX Got cmd", cmd)
+
             if topic == 'initialize':
-                print("XXX Got cmd", cmd)
+                print("INITIALIZING MESH")
 
                 sdf_filename = data
                 if 'npy' not in sdf_filename:
@@ -125,13 +127,10 @@ class UserSession:
 
                 self.sdf_filename = sdf_filename
 
-            elif topic == 'coord':
+            elif topic == "sculp_settings":
                 if data:
                     self.coord = data['point']
 
-            elif topic == "sculp_settings":
-                if data:
-                    # self.run_tick = data["sculp_enabled"]
                     self.sculpting = data["sculp_enabled"]
                     self.prompt = data["prompt"]
 
@@ -142,11 +141,20 @@ class UserSession:
                     self.sdf_optimizer.config.batch_size = batch_size
 
                     grid_resolution = data["grid_resolution"]
-                    self.sdf_optimizer.sdf_grid_res_list = [grid_resolution]
-                    self.sdf_optimizer.update_res(grid_resolution)
+                    if grid_resolution != self.sdf_optimizer.sdf_grid_res_list[
+                            0]:
+                        self.sdf_optimizer.sdf_grid_res_list = [
+                            grid_resolution
+                        ]
+                        self.sdf_optimizer.update_res(grid_resolution)
+                        self.sdf_optimizer.resize_grid(grid_resolution)
+                        process_sdf(
+                            self.sdf_optimizer.grid.detach().cpu().numpy(),
+                            dict(camera=0, image_loss=0),
+                        )
 
-                    # optimization_region = data["optimization_region"]
-                    # self.sdf_optimizer.optimization_region = optimization_region
+                    optimization_region = data["optimize_radius"] * 2
+                    self.optimization_region = optimization_region
 
     async def send_loop(self):
         while True:
@@ -163,6 +171,7 @@ class OptimizerWorker:
         self.optimizer_thread = Thread(target=self.optimizer_loop, daemon=True)
         self._running = True
         self.optimizer_thread.start()
+        self.optimization_region = 8
 
     def optimizer_loop(self):
         while self._running:
@@ -176,8 +185,10 @@ class OptimizerWorker:
 
             if us.sdf_filename:
                 print(f"Resetting to file {us.sdf_filename}")
+
                 sdf_optimizer.sdf_file_path = os.path.join(
                     us.sdf_dir, us.sdf_filename)
+
                 sdf_optimizer.generate_initial_grid()
 
                 us.sdf_filename = None
@@ -191,7 +202,11 @@ class OptimizerWorker:
                 print(f"running optimizer with prompt {us.prompt}")
                 print(f"running optimizer with coord {us.coord}")
 
-                sdf_optimizer.optimize_coord(coord=us.coord, prompt=us.prompt)
+                sdf_optimizer.optimize_coord(
+                    coord=us.coord,
+                    prompt=us.prompt,
+                    weight_range=us.optimization_region,
+                )
 
             # HACK: Test out all code
             # sdf_optimizer.optimize_coord(self.prompt)

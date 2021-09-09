@@ -35,7 +35,7 @@ const optPositionPanel = knobby.panel({
     view_sphere: true,
     optimize_radius: {
         // $label: 'Optimize Radius',
-        value: 20,
+        value: 8,
         min: 2,
         max: 32,
         step: 1

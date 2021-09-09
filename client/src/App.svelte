@@ -7,6 +7,7 @@ import { socket, socketOpen } from './stores/socket'
 import { lossStore, meshStore as mesh } from './stores/mesh'
 import LossHistory from "./LossHistory.svelte";
 import * as knobby from 'svelte-knobby';
+const MAX_RES = 64
 
 // sent to server as sculp_settings
 const sculpControls = knobby.panel({
@@ -16,29 +17,27 @@ const sculpControls = knobby.panel({
     batch_size: 1,
     grid_resolution: {
         $label: 'grid_resolution',
-        value: 64,
+        value: MAX_RES,
         min: 16,
-        max: 64,
+        max: MAX_RES,
         step: 4
     },
     reset_mesh: () => {messageServer("initialize", "cat.npy")},
 });
 
 let spherePositionSet = false
-const optPositionPanel = knobby.panel({
-    resetPosition: value => {
+const optPositionPanel = knobby.panel({    
+    view_sphere: true,
+    optimize_radius: {
+        value: 8,
+        min: 1,
+        max: MAX_RES / 2,
+        step: 1
+    },
+    reset_position: value => {
         spherePositionSet = ! spherePositionSet
         value.view_sphere = true
         return value
-        
-    },
-    view_sphere: true,
-    optimize_radius: {
-        // $label: 'Optimize Radius',
-        value: 8,
-        min: 2,
-        max: 32,
-        step: 1
     },
 });
 
@@ -46,6 +45,7 @@ const optPositionPanel = knobby.panel({
 let mouseDown = false
 let mouseClicked = false
 let shiftDown = false
+let meshScale = 1.0
 const mouse = new THREE.Vector2();
 const lastCamera = new THREE.Vector3()
 
@@ -65,14 +65,7 @@ document.body.appendChild(renderer.domElement);
 
 // add axis to the scene
 const axis = new THREE.AxesHelper(10);
-scene.add(axis);
-
-// const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
-// scene.add( ambientLight );
-
-// const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
-// directionalLight.position.set( -100, -100, -100 )
-// scene.add( directionalLight );
+scene.add(axis)
 
 const lights = [];
 lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
@@ -124,8 +117,11 @@ mesh.subscribe($mesh => {
         scene.remove(lastMesh)
     }
     if ($mesh) {
-        console.log('Got new mesh')
+        // console.log($sculpControls.grid_resolution);
+        meshScale = MAX_RES / $sculpControls.grid_resolution
+        $mesh.scale.set(meshScale, meshScale, meshScale)
         scene.add($mesh)
+        console.log('Got new mesh', {meshScale})
         lastMesh = $mesh
     }
 })
@@ -200,7 +196,7 @@ $: sphere.scale.set(
 const submitSettings = debounce(() => {
     const settings = {
         ...$sculpControls,
-        point: sphere.position.toArray(),
+        point: (sphere.position.clone().divideScalar(meshScale)).toArray(),
         optimize_radius: $optPositionPanel.optimize_radius,
     }
     console.log('Sending sculp_settings', settings);

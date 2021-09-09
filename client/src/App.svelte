@@ -14,6 +14,23 @@ const sculpControls = knobby.panel({
     prompt: "bunny",
 });
 
+let spherePositionSet = false
+const optPositionPanel = knobby.panel({
+    resetPosition: value => {
+        spherePositionSet = ! spherePositionSet
+        value.view_sphere = true
+        return value
+        
+    },
+    view_sphere: true,
+    optimize_radius: {
+        // $label: 'Optimize Radius',
+        value: 20,
+        min: 2,
+        max: 32,
+        step: 1
+    },
+});
 
 ////////////////////////////////////////////////////////////////////////////////
 let mouseDown = false
@@ -69,6 +86,8 @@ camera.lookAt(scene.position);
 const geometry = new THREE.SphereGeometry( 2.0, 8, 8 );
 // const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
 const meshMaterial = new THREE.MeshPhongMaterial({
+    opacity: .5,
+    transparent: true,
     color: 0x156289,
     emissive: 0x072534,
     side: THREE.DoubleSide,
@@ -109,7 +128,9 @@ function loop(): void {
 }
 
 function update(): void {
-    raycast()
+    if (!spherePositionSet) {
+        raycast()
+    }
     if ($socketOpen && !camera.position.equals(lastCamera)) {
         sendNewCamera()
         lastCamera.copy(camera.position)
@@ -128,46 +149,65 @@ function raycast() {
             mouseOverMesh = true
             const { point } = intersects[0]
             sphere.position.copy(point)
-            document.body.style.cursor = 'none'
-            if (mouseClicked){
-                messageServer('cursor', {
-                    mouseClicked,
-                    additive: !shiftDown,
-                    point: point.toArray()
-                })
-                console.log("COORD INFO SENT TO THE SERVER")
-                console.log("COORD ", point.toArray())
-                mouseClicked = false
-
-            }
+            // if (mouseClicked){
+                // messageServer('cursor', {
+                //     mouseClicked,
+                //     additive: !shiftDown,
+                //     point: point.toArray()
+                // })
+                // console.log("COORD INFO SENT TO THE SERVER")
+                // console.log("COORD ", point.toArray())
+                // mouseClicked = false
+            // }
         } else {
             mouseOverMesh = false
-            document.body.style.cursor = 'default'
             // messageServer('cursor', null)
         }
     }
 }
-function onMouseMove(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-}
+
 const sphereColors = {
     'inactive': {r: 0.2, g: 0.2, b: 0.2},
-    'positive': {r: 0.1, g: 1.0, b: 0.5372549019607843},
+    'positive': {r: 0.1, g: 1.0, b: 0.5372549019607843, a: .5},
     'negative': {r: 0.9, g: 0.3843137254901961, b: 0.5372549019607843},
 }
 $: sphere.visible = mouseOverMesh
-$: sphereColorName = mouseDown ? (shiftDown ? 'negative' : 'positive') : 'inactive'
-$: sphere.material.color= sphereColors[sphereColorName]
+// $: sphereColorName = mouseDown ? (shiftDown ? 'negative' : 'positive') : 'inactive'
+// $: sphere.material.color= sphereColors[sphereColorName]
+sphere.material.color = sphereColors['positive']
+// $: sphere.material.opacity = spherePositionSet ? .5 : .8
+$: sphere.material.opacity = $optPositionPanel.view_sphere ? (spherePositionSet ? .5 : .8) : 0
+$: sphere.scale.set(
+    $optPositionPanel.optimize_radius * .5,
+    $optPositionPanel.optimize_radius * .5,
+    $optPositionPanel.optimize_radius * .5
+)
+
+
+// $: if (spherePositionSet) {
+//     document.body.style.cursor = 'default'
+// } else {
+//     document.body.style.cursor = 'none'
+// }
+
+// $: console.log($optPositionPanel);
+
 ////////////////////////////////////////////////////////////////////////////////
 
-const submitSettings = debounce((settings:any) => {
+const submitSettings = debounce(() => {
+    const settings = {
+        ...$sculpControls,
+        point: sphere.position.toArray(),
+        optimize_radius: $optPositionPanel.optimize_radius,
+    }
+    console.log('Sending sculp_settings', settings);
+    
     messageServer("sculp_settings", settings)
 }, 100);
 
-$: submitSettings($sculpControls);
+$: if ($sculpControls) {
+    submitSettings()
+}
 
 onMount(() => {
     loop()
@@ -183,7 +223,6 @@ function onKeyDown(e: KeyboardEvent) {
     if (e.key.toLowerCase() === "t") {
         console.log("SCUlPTING!")
         // if (!isSculping){
-
         //     isSculping = true;
         //     messageServer("sculp_mode", {is_sculping: isSculping})
         // }
@@ -202,12 +241,29 @@ function onKeyUp(e: KeyboardEvent) {
     // };
 
 }
+function onMouseMove(event) {
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+function onMouseDown() {
+    mouseDown=true
+    if (!spherePositionSet && mouseOverMesh) {
+        spherePositionSet = true
+    }
+}
+
+// If the sculpting sphere changes update the setting.
+$: if (spherePositionSet == true && $optPositionPanel.optimize_radius) {
+    submitSettings()
+}
 
 </script>
 
 <svelte:body
     on:mousemove={onMouseMove}
-    on:mousedown={() => mouseDown=true}
+    on:mousedown={onMouseDown}
     on:click={() => mouseClicked=true}
     on:mouseup={() => mouseDown=false}
     on:keydown={onKeyDown}
@@ -227,7 +283,6 @@ function onKeyUp(e: KeyboardEvent) {
     </button>
     <LossHistory points={$lossStore["camera"]}/>
 </div>
-{$sculpControls}
 
 <style>
     .instructions {
@@ -258,10 +313,8 @@ function onKeyUp(e: KeyboardEvent) {
         background: #059669;
     }
     .indicator.closed {
-        background: #DC2626
-;
+        background: #DC2626;
     }
-
     :global(body) {
         margin: 0px;
         padding: 0px;

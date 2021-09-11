@@ -18,8 +18,6 @@ async function objStringToMesh(objString:string):Promise<Mesh> {
     })
 }
 
-
-
 export const meshStore = writable<Mesh>(null, (set) => {
     // Start off with a default bunny for testing.
     objStringToMesh(bunnyOBJ).then((bunny) => {

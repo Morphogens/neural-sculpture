@@ -387,7 +387,7 @@ def generate_image(
     light_direction_point = (light_position - intersection_pos) / light_norm
 
     # Create the directional light
-    shading = 0
+    # shading = 0
     light_direction = (camera / torch.norm(camera, p=2)).repeat(
         width, height, 1)
     l_dot_n = torch.sum(light_direction * intersection_normal, 2).unsqueeze_(2)
@@ -401,5 +401,6 @@ def generate_image(
     # Get the final image
     image = shading * mask
     image[mask == 0] = 0
+    image = shading / shading.max()
 
     return image

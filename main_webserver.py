@@ -51,7 +51,7 @@ sdf_grid_res_list = [64]
 def reset_sdf_optimizer(
     sdf_grid_res_list=[64],
     sdf_dir="./sdf-grids",
-    sdf_filename="cat.npy",
+    sdf_filename="skull.npy",
 ):
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
@@ -126,6 +126,59 @@ class UserSession:
                     sdf_filename += ".npy"
 
                 self.sdf_filename = sdf_filename
+
+            elif topic == "add_sdf" or topic == "substract_sdf":
+                print("ADDING/SUBSTRACTING FROM SDF")
+
+                if topic == "add_sdf":
+                    sdf_diff = 0.01
+                else:
+                    sdf_diff = -0.01
+
+                self.coord = [int(c) for c in self.coord]
+                x_coord, y_coord, z_coord = self.coord
+
+                radius = 10
+                res = self.optimization_region
+                x = np.arange(0, res, 1, float)
+                y = x[:, np.newaxis]
+
+                x0 = y0 = res // 2
+
+                weight_matrix = np.exp(-4 * np.log(2) *
+                                       ((x - x0)**2 + (y - y0)**2) / radius**2)
+                weight_matrix = torch.tensor(weight_matrix).cuda()
+
+                weight_range = self.optimization_region
+                weight_grid = torch.zeros_like(self.sdf_optimizer.grid)
+                res = weight_grid.shape[0]
+                weight_grid[max(0, x_coord -
+                                int(weight_range /
+                                    2)):min(res - 1, x_coord +
+                                            int(weight_range / 2)),
+                            max(0, y_coord -
+                                int(weight_range /
+                                    2)):min(res - 1, y_coord +
+                                            int(weight_range / 2)),
+                            max(0, z_coord - int(weight_range / 2)
+                                ):min(res - 1, z_coord +
+                                      int(weight_range /
+                                          2)), ] = sdf_diff * weight_matrix
+
+                new_grid = self.sdf_optimizer.grid + weight_grid.detach(
+                ).clone()
+
+                self.sdf_optimizer.grid = new_grid.detach().clone()
+
+                self.sdf_optimizer.optimizer = torch.optim.AdamW(
+                    [self.sdf_optimizer.grid],
+                    lr=self.sdf_optimizer.learning_rate,
+                )
+
+                process_sdf(
+                    self.sdf_optimizer.grid.detach().cpu().numpy(),
+                    dict(camera=0, image_loss=0),
+                )
 
             elif topic == "sculp_settings":
                 if data:

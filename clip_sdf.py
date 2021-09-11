@@ -102,12 +102,12 @@ class SDFOptimizer:
 
         self.learning_rate = self.config.learning_rate
 
-        self.bounding_box_min_x = -2.
-        self.bounding_box_min_y = -2.
-        self.bounding_box_min_z = -2.
-        self.bounding_box_max_x = 2
-        self.bounding_box_max_y = 2
-        self.bounding_box_max_z = 2
+        self.bounding_box_min_x = -3
+        self.bounding_box_min_y = -3
+        self.bounding_box_min_z = -3
+        self.bounding_box_max_x = 3
+        self.bounding_box_max_y = 3
+        self.bounding_box_max_z = 3
         self.on_update = on_update
 
         self.results_dir = None
@@ -137,10 +137,12 @@ class SDFOptimizer:
         grid_res: int,
     ):
         self.grid_res_x = self.grid_res_y = self.grid_res_z = grid_res
-        self.voxel_size = Tensor([4. / (self.grid_res_x - 1)])
+        self.voxel_size = (self.bounding_box_max_x -
+                           self.bounding_box_min_x) / (grid_res - 1)
 
     def resize_grid(
-        self, grid_res: int,
+        self,
+        grid_res: int,
     ):
         with torch.no_grad():
             # Update the sdf grid
@@ -149,8 +151,6 @@ class SDFOptimizer:
                 size=(grid_res, ) * 3,
                 mode='trilinear',
             )[0, 0, :]
-
-
 
     def generate_initial_grid(self, ):
         if self.sdf_file_path is None:
@@ -165,11 +165,11 @@ class SDFOptimizer:
             # grid = np.stack([
             #     np.transpose(grid[:, :, idx]) for idx in range(grid.shape[-1])
             # ])
-            pad_percent = 20
+            pad_percent = 0
             pad = int(grid.shape[0] * pad_percent / 100)
 
             grid = Tensor(grid)
-            grid = grid / (grid.abs().max()) * 1
+            # grid = grid / (grid.abs().max())
             grid = torch.transpose(grid, 1, 2).contiguous()
 
             if pad != 0:
@@ -604,7 +604,7 @@ class SDFOptimizer:
             update_grid_res = self.sdf_grid_res_list[grid_res_idx + 1]
             self.update_res(grid_res=update_grid_res, )
             self.resize_grid(grid_res=update_grid_res, )
-            
+
             self.grid.requires_grad = True
 
             optim_state = self.optimizer.state_dict()['state']
@@ -683,13 +683,15 @@ class SDFOptimizer:
             mapping_span=2 * math.pi,
             mapping_offset=math.pi,
             shuffle_order=False,
-            mapping_type='linear',
+            mapping_type='sdfdiff',
             cam_scaler=self.config.camera.cam_scaler,
         )
 
         for idx, camera_angle in enumerate(camera_angle_list):
+            print(f"OPTIMIZING ANGLE {idx}")
             gen_img = self.generate_image(camera_angle, )
 
+            self.grid.requires_grad = True
             coord_hook = self.grid.register_hook(
                 lambda grad: grad * weight_grid.float())
 

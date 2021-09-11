@@ -3,7 +3,7 @@ import torchvision
 import clip
 
 
-class CLIPLoss():
+class CLIPLoss:
     def __init__(
         self,
         text_target=None,
@@ -129,9 +129,9 @@ class CLIPLoss():
         self,
         img_batch: torch.Tensor,
         prompt: str = None,
-        doAugment: bool = True,
+        augment: bool = True,
     ):
-        if doAugment:
+        if augment:
             img_batch = self.augment(img_batch)
         img_logits = self.get_clip_img_encodings(img_batch)
 
@@ -146,11 +146,11 @@ class CLIPLoss():
 
         loss = 0
         # loss += (text_logits - img_logits).pow(2).mean()
-        loss += (text_logits -
-                 img_logits).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
-        # loss = -torch.cosine_similarity(text_logits, img_logits).mean()
+        # loss += (text_logits -
+        #          img_logits).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+        loss = 1-torch.cosine_similarity(text_logits, img_logits).mean()
 
-        return loss
+        return loss, img_logits
 
 
 # class ClipLoss(ImageGenerator):

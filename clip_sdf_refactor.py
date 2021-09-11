@@ -27,6 +27,7 @@ from clip_loss import CLIPLoss
 from grid_utils import grid_construction_sphere_big, get_grid_normal, grid_construction_sphere_small
 from sdf_utils import generate_image
 from config import *
+import nouns
 
 # NOTE: speed up
 torch.backends.cudnn.benchmark = True
@@ -39,6 +40,7 @@ else:
     Tensor = torch.FloatTensor
 
 clip_loss = CLIPLoss()
+nouns.init_nouns(clip_loss.clip_model)
 
 writer = SummaryWriter()
 
@@ -274,7 +276,6 @@ class SDFOptimizer:
 
          # how many full camera sweeps have we done
         self.camera_pass_iter = 0
-        self.sdf_grid_res_iter = 0
         self.grid_res_idx = 0
 
         self.grid_res_x = self.grid_res_y = self.grid_res_z = self.sdf_grid_res_list[0]
@@ -358,44 +359,29 @@ class SDFOptimizer:
 
         return image
 
-    def loss_fn(
-        self,
-        output,
-        grid,
-        prompt=None,
-    ):
-        grid_res_x = self.grid_res_x
-        grid_res_y = self.grid_res_y
-        grid_res_z = self.grid_res_z
-
-        output = output[None, None].repeat(1, 3, 1, 1)  # CLIP expects RGB
-        image_loss = clip_loss.compute(
-            output,
-            prompt,
-        )
-
-        # wandb.log({"image loss": image_loss})
-
-        [grid_normal_x, grid_normal_y,
-         grid_normal_z] = get_grid_normal(grid, self.voxel_size, grid_res_x,
-                                          grid_res_y, grid_res_z)
-        sdf_loss = torch.abs(torch.pow(grid_normal_x[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
-                                    + torch.pow(grid_normal_y[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
-                                    + torch.pow(grid_normal_z[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2) - 1).mean() #/ ((grid_res-1) * (grid_res-1) * (grid_res-1))
-
-        return image_loss, sdf_loss
-
     def compute_losses(
         self,
         gen_img,
         prompt,
     ):
-        # self.grid = sdf_grad_weighter(self.grid)
-        image_loss, sdf_loss = self.loss_fn(
+        grid_res_x = self.grid_res_x
+        grid_res_y = self.grid_res_y
+        grid_res_z = self.grid_res_z
+
+        gen_img = gen_img[None, None].repeat(1, 3, 1, 1)  # CLIP expects RGB
+        image_loss, img_logits = clip_loss.compute(
             gen_img,
-            self.grid,
             prompt,
         )
+
+
+        [grid_normal_x, grid_normal_y,
+         grid_normal_z] = get_grid_normal(self.grid, self.voxel_size, grid_res_x,
+                                          grid_res_y, grid_res_z)
+        sdf_loss = torch.abs(torch.pow(grid_normal_x[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
+                                    + torch.pow(grid_normal_y[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2)\
+                                    + torch.pow(grid_normal_z[1:grid_res_x-1, 1:grid_res_y-1, 1:grid_res_z-1], 2) - 1).mean() #/ ((grid_res-1) * (grid_res-1) * (grid_res-1))
+
 
         conv_input = (self.grid).unsqueeze(0).unsqueeze(0)
         conv_filter = torch.cuda.FloatTensor([[[[[0, 0, 0], [0, 1, 0],
@@ -408,15 +394,15 @@ class SDFOptimizer:
         conv_result = (F.conv3d(conv_input, conv_filter)**2)
         lp_loss = conv_result.mean()
 
-        image_loss *= torch.prod(torch.tensor(gen_img.shape).detach().clone())
-        sdf_loss *= torch.prod(torch.tensor(self.grid.shape).detach().clone())
-        lp_loss *= torch.prod(torch.tensor(conv_result.shape).detach().clone())
+        # image_loss *= torch.prod(torch.tensor(gen_img.shape).detach().clone())
+        # sdf_loss *= torch.prod(torch.tensor(self.grid.shape).detach().clone())
+        # lp_loss *= torch.prod(torch.tensor(conv_result.shape).detach().clone())
 
-        image_loss *= self.config.loss.image_loss_weight
-        sdf_loss *= self.config.loss.sdf_loss_weight
-        lp_loss *= self.config.loss.lp_loss_weight
+        # image_loss *= self.config.loss.image_loss_weight
+        # sdf_loss *= self.config.loss.sdf_loss_weight
+        # lp_loss *= self.config.loss.lp_loss_weight
 
-        return image_loss, sdf_loss, lp_loss
+        return image_loss, sdf_loss, lp_loss, img_logits
 
     @staticmethod
     def create_experiment_dir(experiment_name: str, ):
@@ -492,11 +478,11 @@ class SDFOptimizer:
 
     @property
     def sdf_grid_res(self):
-        return self.sdf_grid_res_list[self.sdf_grid_res_iter]
+        return self.sdf_grid_res_list[self.grid_res_idx]
 
     def optimization_step(self, prompt, coord=None):
         self.set_coord(coord)
-        sdf_grid_res_iter = self.camera_pass_iter % self.config.iters_per_res == 0
+        sdf_grid_res_iter = self.camera_pass_iter % self.config.iters_per_res
         if self.camera_pass_iter > 1 and sdf_grid_res_iter == 0:
             self.increase_res()
 
@@ -536,21 +522,29 @@ class SDFOptimizer:
                 # if self.sdf_file_path is not None:
                 # gen_img = torch.rot90(gen_img)
 
-                image_loss, sdf_loss, lp_loss = self.compute_losses(
+                image_loss, sdf_loss, lp_loss, img_logits = self.compute_losses(
                     gen_img,
                     prompt,
                 )
+                
+                loss_weights = self.config.loss
+                # cam_view_loss += (
+                #     image_loss * loss_weights.image_loss_weight
+                #      + sdf_loss * loss_weights.sdf_loss_weight
+                #      + lp_loss * loss_weights.lp_loss_weight
+                # )
+                cam_view_loss += image_loss 
 
-                cam_view_loss += image_loss + sdf_loss + lp_loss
-
-                if init_loss is not None:
-                    if image_loss < init_loss - tolerance:
-                        break
+                # if init_loss is not None:
+                #     if image_loss < init_loss - tolerance:
+                #         break
 
                 if init_loss is None:
                     init_loss = image_loss
 
                 self.global_iter += 1
+
+
                 if self.global_iter % self.config.batch_size == 0:
                     cam_view_loss /= self.config.batch_size
 
@@ -563,13 +557,13 @@ class SDFOptimizer:
                     self.optimizer.step()
 
                     if self.weight_grid is not None:
-                        self.coord_hook.remove()
+                        coord_hook.remove()
 
                     loss_dict=dict(
                         camera=cam_view_loss.item(),
                         image_loss=image_loss.item(),
-                        lp_loss=lp_loss,
-                        sdf_loss=sdf_loss
+                        lp_loss=lp_loss.item(),
+                        sdf_loss=sdf_loss.item()
                         )
 
                     if self.on_update:
@@ -577,6 +571,13 @@ class SDFOptimizer:
                             sdf=self.grid.detach().cpu().numpy(),
                             loss_dict=loss_dict,
                         )
+                    # NOTE: clears jupyter notebook cell output
+                    if is_in_jupyter:
+                        clear_output(wait=True)
+
+                    top = nouns.get_top_nouns(img_logits)
+                    for noun, score in top:
+                        print(f"{noun:>16s}: {100 * score:.2f}%")
                     self.write_summaries(loss_dict, gen_img)
                     print("tolerance:", tolerance, "\n")
                     print("")
@@ -587,10 +588,7 @@ class SDFOptimizer:
 
                     cam_view_loss = 0
 
-
     def write_summaries(self, loss_dict, gen_img):
-        # NOTE: clears jupyter notebook cell output
-        clear_output(wait=True)
         for name, value in loss_dict.items():
             writer.add_scalar(
                 f'loss-{self.sdf_grid_res}/{name}',
@@ -622,289 +620,6 @@ class SDFOptimizer:
                 Image.fromarray(
                     image_initial_array.astype(np.uint8)))
 
-
-    def clip_sdf_optimization(
-        self,
-        prompt: str,
-        experiment_name: str = None,
-    ):
-        """
-        Optimize a 3D SDF grid given a prompt. The process is:
-        1. Define and create experiment directory
-        2. Set grid parameters
-        3. Create initial SDF grid
-        4. Create optimizer
-        5. Optimize, i.e.:
-            for each resolution in sdf_grid_res_list
-                while the resolution is not increased
-                    get camera views
-                    for each camera view
-                        generate image
-                        compute loss
-                        update optimizer
-                        print results
-                        compute stop criteria
-
-                update resolution and optimizer
-
-            Generate final visualizations
-        """
-        if experiment_name is None:
-            experiment_name = "_".join(prompt.split(" "))
-
-        self.results_dir = self.create_experiment_dir(
-            experiment_name=experiment_name, )
-
-        self.global_iter = 0
-        for grid_res_idx, sdf_grid_res in enumerate(self.sdf_grid_res_list):
-            increase_res = False
-
-            sdf_grid_res_iter = 0
-            while not increase_res:
-                cam_view_loss = 0
-
-                num_cameras = min(
-                    self.config.camera.max_num_cameras,
-                    self.config.camera.init_num_cameras *
-                    (sdf_grid_res_iter + 1),
-                )
-
-                camera_angle_list = self.get_camera_angle_list(
-                    num_cameras=num_cameras,
-                    mapping_span=self.config.camera.mapping_span,
-                    mapping_offset=self.config.camera.mapping_offset,
-                    shuffle_order=self.config.camera.shuffle_order,
-                    mapping_type=self.config.camera.mapping_type,
-                    cam_scaler=self.config.camera.cam_scaler,
-                )
-
-                if sdf_grid_res_iter % 2 == 0:
-                    camera_angle_list = camera_angle_list[::-1]
-
-                step_size = int(np.ceil(self.config.batch_size / 2))
-                for cam_view_idx in range(0, num_cameras, step_size):
-                    init_loss = None
-                    tolerance = self.config.init_tolerance / (grid_res_idx + 1)
-
-                    cam_iter = 0
-                    while True:
-                        gen_img = self.generate_image(
-                            camera_angle_list[cam_view_idx], )
-
-                        # if self.sdf_file_path is not None:
-                        # gen_img = torch.rot90(gen_img)
-
-                        image_loss, sdf_loss, lp_loss = self.compute_losses(
-                            gen_img,
-                            prompt,
-                        )
-
-                        cam_view_loss += image_loss + sdf_loss + lp_loss
-
-                        if init_loss is not None:
-                            if image_loss < init_loss - tolerance:
-                                break
-
-                        if cam_iter >= self.config.max_iters_per_cam:
-                            break
-
-                        if init_loss is None:
-                            init_loss = image_loss
-
-                        self.global_iter += 1
-                        if self.global_iter % self.config.batch_size == 0:
-                            cam_view_loss /= self.config.batch_size
-
-                            self.optimizer.zero_grad()
-                            cam_view_loss.backward()
-                            self.optimizer.step()
-
-                            if self.on_update:
-                                self.on_update(
-                                    sdf=self.grid.detach().cpu().numpy(),
-                                    loss_dict=dict(
-                                        camera=cam_view_loss.item(),
-                                        image_loss=image_loss.item()),
-                                )
-
-                            # NOTE: clears jupyter notebook cell output
-                            clear_output(wait=True)
-
-                            writer.add_scalar(
-                                f'loss-{sdf_grid_res}/image_loss',
-                                image_loss.item(),
-                                self.global_iter,
-                            )
-                            writer.add_scalar(
-                                f'loss-{sdf_grid_res}/sdf_loss',
-                                sdf_loss,
-                                self.global_iter,
-                            )
-                            writer.add_scalar(
-                                f'loss-{sdf_grid_res}/lp_loss',
-                                lp_loss,
-                                self.global_iter,
-                            )
-                            writer.add_scalar(
-                                f'loss-{sdf_grid_res}/cam_view_loss',
-                                cam_view_loss,
-                                self.global_iter,
-                            )
-
-                            print("\n\n")
-                            print("image loss: ", image_loss, "\n")
-                            print("sdf loss: ", sdf_loss, "\n")
-                            print("lp loss: ", lp_loss, "\n")
-                            print("loss: ", cam_view_loss, "\n")
-                            print("tolerance:", tolerance, "\n")
-                            print("")
-                            print("sdf grid res:", sdf_grid_res, " - "
-                                  "iteration:", sdf_grid_res_iter, " - ",
-                                  "cam view idx", cam_view_idx, " - ",
-                                  "cam iters:", cam_iter + 1)
-                            torchvision.utils.save_image(
-                                gen_img.detach(),
-                                "./" + self.results_dir + "/" + "final_cam_" +
-                                str(sdf_grid_res).zfill(4) + "-" +
-                                str(self.global_iter).zfill(4) + ".jpg",
-                                nrow=8,
-                                padding=2,
-                                normalize=False,
-                                range=None,
-                                scale_each=False,
-                                pad_value=0,
-                            )
-
-                            if is_in_jupyter:
-
-                                # NOTE: jupyter notebook display
-                                image_initial_array = gen_img.detach().cpu(
-                                ).numpy() * 255
-                                display(
-                                    Image.fromarray(
-                                        image_initial_array.astype(np.uint8)))
-
-                            cam_view_loss = 0
-
-                        cam_iter += 1
-
-                    torch.save(
-                        self.grid,
-                        os.path.join(self.results_dir, "grid.pt"),
-                    )
-
-                if sdf_grid_res_iter >= self.config.iters_per_res:
-                    increase_res = True
-
-                sdf_grid_res_iter += 1
-
-
-
-    def optimize_view(
-        self,
-        prompt,
-        camera_angle,
-    ):
-        gen_img = self.generate_image(camera_angle, )
-
-        image_loss, sdf_loss, lp_loss = self.compute_losses(
-            gen_img,
-            prompt,
-        )
-
-        cam_view_loss = image_loss + sdf_loss + lp_loss
-
-        self.optimizer.zero_grad()
-        cam_view_loss.backward()
-        self.optimizer.step()
-
-        return self.grid
-
-    def optimize_coord(
-        self,
-        prompt,
-        coord,
-        weight_range=8,
-    ):
-        coord = [int(c) for c in coord]
-        x_coord, y_coord, z_coord = coord
-
-        weight_grid = torch.zeros_like(self.grid)
-        res = weight_grid.shape[0]
-        weight_grid[
-            max(0, x_coord -
-                int(weight_range / 2)):min(res - 1, x_coord +
-                                           int(weight_range / 2)),
-            max(0, y_coord -
-                int(weight_range / 2)):min(res - 1, y_coord +
-                                           int(weight_range / 2)),
-            max(0, z_coord -
-                int(weight_range / 2)):min(res - 1, z_coord +
-                                           int(weight_range / 2)), ] = 1
-
-        camera_angle_list = self.get_camera_angle_list(
-            num_cameras=16,
-            mapping_span=2 * math.pi,
-            mapping_offset=math.pi,
-            shuffle_order=False,
-            mapping_type='linear',
-            cam_scaler=self.config.camera.cam_scaler,
-        )
-
-        for idx, camera_angle in enumerate(camera_angle_list):
-            gen_img = self.generate_image(camera_angle, )
-
-            if self.coord_hook is not None:
-                self.coord_hook.remove()
-
-            self.coord_hook = self.grid.register_hook(
-                lambda grad: grad * weight_grid.float())
-            image_loss, sdf_loss, lp_loss = self.compute_losses(
-                gen_img,
-                prompt,
-            )
-
-            cam_view_loss = image_loss + sdf_loss + lp_loss
-
-            self.optimizer.zero_grad()
-            cam_view_loss.backward()
-            self.optimizer.step()
-            if self.on_update:
-                print("COORD", coord)
-                self.on_update(sdf=self.grid.detach().cpu().numpy(),
-                               loss_dict=dict(
-                                   camera=cam_view_loss.item(),
-                                   image_loss=image_loss.item(),
-                                   sdf_loss=sdf_loss.item(),
-                               ))
-
-            self.results_dir = self.create_experiment_dir(
-                experiment_name='coord', )
-
-            torchvision.utils.save_image(
-                gen_img.detach(),
-                "./" + self.results_dir + "/" + "final_cam_" +
-                str(self.grid.shape[0]).zfill(4) + "-" + str(idx).zfill(4) +
-                ".jpg",
-                nrow=8,
-                padding=2,
-                normalize=False,
-                range=None,
-                scale_each=False,
-                pad_value=0,
-            )
-
-            # NOTE: jupyter notebook display
-            if is_in_jupyter:
-                clear_output()
-                image_initial_array = gen_img.detach().cpu().numpy() * 255
-                display(Image.fromarray(image_initial_array.astype(np.uint8)))
-
-        # if self.on_update:
-        #     self.on_update(self.grid)
-        #     print("UPDATE SENT")
-
-        return self.grid
 
     def generate_visualizations(self, ):
         vis_dir = os.path.join(self.results_dir, "visualizations")

@@ -17,46 +17,66 @@ import skimage.measure
 import numpy as np
 from fastapi import FastAPI, WebSocket
 from loguru import logger
-from clip_sdf import SDFOptimizer, CLIPSDFConfig
+from clip_sdf_refactor import SDFOptimizer
+from config import *
 
 app = fastapi.FastAPI()
 
 polygon_worker = ThreadPoolExecutor(1)
 inferece_worker = ThreadPoolExecutor(1)
 
-# XXX: MAYBE BEST PARAMS EVER!!
-optim_config = CLIPSDFConfig(
+# optim_config = OptimConfig(
+#     learning_rate=0.01,
+#     batch_size=1,
+#     init_tolerance=-0.2,
+#     iters_per_res=6,
+#     max_iters_per_cam=4,
+#     camera=Camera(
+#         max_num_cameras=16,
+#         init_num_cameras=8,
+#         mapping_span=math.pi,
+#         mapping_offset=math.pi,
+#         shuffle_order=False,
+#         mapping_type="linear",
+#     ),
+#     loss=Loss(
+#         image_loss_weight=1 / 1000,
+#         sdf_loss_weight=1 / 1000,
+#         lp_loss_weight=1 / 1000,
+#     ),
+# )
+optim_config = OptimConfig(
     learning_rate=0.01,
     batch_size=1,
-    init_tolerance=-0.2,
-    iters_per_res=6,
-    max_iters_per_cam=4,
-    camera=CLIPSDFConfig(
+    init_tolerance=-0.1,
+    iters_per_res=10,
+    max_iters_per_cam=8,
+    camera=Camera(
         max_num_cameras=16,
         init_num_cameras=8,
-        mapping_span=math.pi,
-        mapping_offset=math.pi,
+        mapping_span=2*math.pi,
         shuffle_order=False,
         mapping_type="linear",
     ),
-    loss=CLIPSDFConfig(
+    loss=Loss(
         image_loss_weight=1 / 1000,
-        sdf_loss_weight=0 / 1000,
-        lp_loss_weight=0 / 1000,
+        sdf_loss_weight=1 / 1000,
+        lp_loss_weight=1 / 1000,
     ),
 )
-sdf_grid_res_list = [64]
+sdf_grid_res_list = [8, 16, 24, 32, 40, 48, 56, 64]
 
 
 def reset_sdf_optimizer(
-    sdf_grid_res_list=[64],
+    sdf_grid_res_list=sdf_grid_res_list,
     sdf_dir="./sdf-grids",
-    sdf_filename="cat.npy",
+    # sdf_filename="cat.npy",
+    sdf_filename=None,
 ):
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
         sdf_grid_res_list=sdf_grid_res_list,
-        sdf_file_path=os.path.join(sdf_dir, sdf_filename),
+        sdf_file_path=os.path.join(sdf_dir, sdf_filename) if sdf_filename else None,
         on_update=on_update,
     )
 
@@ -151,7 +171,7 @@ class OptimizerWorker:
         while self._running:
             us = self.user_session
             if not us or not us.run_tick:
-                print("No work...")
+                # print("No work...")
                 time.sleep(1 / 30)
                 continue
 
@@ -165,14 +185,16 @@ class OptimizerWorker:
                     dict(camera=0, image_loss=0),
                 )
 
-            if us.coord is not None:
-                print(f"running optimizer with prompt {us.prompt}")
-                print(f"running optimizer with coord {us.coord}")
-                # us.coord = [
-                #     18.33542332356351, 46.84751561112019, 44.28860300189207
-                # ]
-                sdf_optimizer.optimize_coord(coord=us.coord, prompt=us.prompt)
-                us.coord = None
+            sdf_optimizer.optimization_step(coord=None, prompt="a sculpture of a bunny")
+
+            # if us.coord is not None:
+            #     print(f"running optimizer with prompt {us.prompt}")
+            #     print(f"running optimizer with coord {us.coord}")
+            #     # us.coord = [
+            #     #     18.33542332356351, 46.84751561112019, 44.28860300189207
+            #     # ]
+            #     sdf_optimizer.optimization_step(coord=us.coord, prompt=us.prompt)
+            #     us.coord = None
 
             # HACK: Test out all code
             # sdf_optimizer.optimize_coord(self.prompt)

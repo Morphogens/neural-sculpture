@@ -2,101 +2,26 @@
 import { onMount } from 'svelte'
 import * as THREE from 'three'
 import { debounce } from 'ts-debounce'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; 
-import { socket, socketOpen } from './stores/socket'
+import setupScene from './sceneSetup'
+import LossHistory from "./LossHistory.svelte"
+import { socket, socketOpen, messageServer } from './stores/socket'
+import { mode } from './stores/state'
 import { lossStore, meshStore as mesh } from './stores/mesh'
-import LossHistory from "./LossHistory.svelte";
-import * as knobby from 'svelte-knobby';
-
-// sent to server as sculp_settings
-const sculpControls = knobby.panel({
-    sculp_enabled: false,
-    prompt: "A sculpture of a bunny rabbit",
-    learning_rate: 1,
-    batch_size: 1,
-    grid_resolution: {
-        $label: 'grid_resolution',
-        value: 64,
-        min: 16,
-        max: 64,
-        step: 4
-    },
-    reset_mesh: () => {messageServer("initialize", "cat.npy")},
-    substract_sdf: () => {messageServer("substract_sdf", "")},
-    add_sdf: () => {messageServer("add_sdf", "")},
-});
-
-let spherePositionSet = false
-const optPositionPanel = knobby.panel({
-    resetPosition: value => {
-        spherePositionSet = ! spherePositionSet
-        value.view_sphere = true
-        return value
-        
-    },
-    view_sphere: true,
-    optimize_radius: {
-        // $label: 'Optimize Radius',
-        value: 8,
-        min: 1,
-        max: 32,
-        step: 1
-    },
-});
+import { sculpControls, optPositionPanel } from './stores/panels'
+const MAX_RES = 64
 
 ////////////////////////////////////////////////////////////////////////////////
 let mouseDown = false
 let mouseClicked = false
 let shiftDown = false
+let meshScale = 1.0
 const mouse = new THREE.Vector2();
 const lastCamera = new THREE.Vector3()
+let intersectPoint: null | THREE.Vector3 = null
 
 ////////////////////////////////////////////////////////////////////////////////
-// Setup 3d seen
-const raycaster = new THREE.Raycaster();
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-const controls = new OrbitControls( camera, renderer.domElement )
-
-// set size
-renderer.setSize(window.innerWidth, window.innerHeight);
-
-// add canvas to dom
-document.body.appendChild(renderer.domElement);
-
-// add axis to the scene
-const axis = new THREE.AxesHelper(10);
-scene.add(axis);
-
-// const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
-// scene.add( ambientLight );
-
-// const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
-// directionalLight.position.set( -100, -100, -100 )
-// scene.add( directionalLight );
-
-const lights = [];
-lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-
-lights[ 0 ].position.set( 0, 200, 0 );
-lights[ 1 ].position.set( 100, 200, 100 );
-lights[ 2 ].position.set( - 100, - 200, - 100 );
-
-scene.add( lights[ 0 ] );
-scene.add( lights[ 1 ] );
-scene.add( lights[ 2 ] );
-
-camera.position.x = 100;
-camera.position.y = 100;
-camera.position.z = 100;
-
-camera.lookAt(scene.position);
-
+const { scene, raycaster, camera, controls, sceneUpdate } = setupScene()
 const geometry = new THREE.SphereGeometry( 2.0, 8, 8 );
-// const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
 const meshMaterial = new THREE.MeshPhongMaterial({
     opacity: .5,
     transparent: true,
@@ -105,17 +30,26 @@ const meshMaterial = new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
     flatShading: true
 })
-
-const sphere = new THREE.Mesh( geometry, meshMaterial );
+const sphere = new THREE.Mesh( geometry, meshMaterial )
 scene.add( sphere )
+
 ////////////////////////////////////////////////////////////////////////////////
+// Server communication.
+const sendNewCamera = debounce(() => {
+    messageServer('camera', camera.position.toArray())
+}, 200)
 
-function messageServer(message:string, data:any) {
-    if ($socketOpen) {
-        socket.send(JSON.stringify({ message, data }))
+const submitSettings = debounce(() => {
+    const settings = {
+        ...$sculpControls,
+        point: (sphere.position.clone().divideScalar(meshScale)).toArray(),
+        optimize_radius: $optPositionPanel.optimize_radius,
     }
-}
+    console.log('Sending sculp_settings', settings);
+    messageServer("sculp_settings", settings)
+}, 100);
 
+////////////////////////////////////////////////////////////////////////////////
 // Listen for new meshes from the server.
 let lastMesh = null
 mesh.subscribe($mesh => {
@@ -127,98 +61,51 @@ mesh.subscribe($mesh => {
         scene.remove(lastMesh)
     }
     if ($mesh) {
-        console.log('Got new mesh')
+        meshScale = MAX_RES / $sculpControls.grid_resolution
+        $mesh.scale.set(meshScale, meshScale, meshScale)
         scene.add($mesh)
+        console.log('Got new mesh', {meshScale})
         lastMesh = $mesh
     }
 })
 
-const sendNewCamera = debounce(() => {
-    messageServer('camera', camera.position.toArray())
-}, 200)
-
-function loop(): void {
-    requestAnimationFrame(loop);
-    update();
-    renderer.render(scene, camera);
-}
-
-function update(): void {
-    if (!spherePositionSet) {
-        raycast()
-    }
-    if ($socketOpen && !camera.position.equals(lastCamera)) {
-        sendNewCamera()
-        lastCamera.copy(camera.position)
-    }
-    controls.update()
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Detect which position is being moused over.
 let mouseOverMesh = false
-function raycast() {
+function detectMeshIntersection() {
     if ($mesh) {
         raycaster.setFromCamera( mouse, camera );
         const intersects = raycaster.intersectObjects($mesh.children);
         if (intersects.length) {
             mouseOverMesh = true
-            const { point } = intersects[0]
-            sphere.position.copy(point)
+            intersectPoint = intersects[0].point
+            if ($mode == 'setting-sphere') {
+                sphere.position.copy(intersectPoint)
+            }
         } else {
+            intersectPoint = null
             mouseOverMesh = false
-            // messageServer('cursor', null)
         }
     }
 }
-
 const sphereColors = {
     'inactive': {r: 0.2, g: 0.2, b: 0.2},
     'positive': {r: 0.1, g: 1.0, b: 0.5372549019607843, a: .5},
     'negative': {r: 0.9, g: 0.3843137254901961, b: 0.5372549019607843},
 }
-$: sphere.visible = mouseOverMesh
+$: sphere.visible = $mode == 'default' || mouseOverMesh
 // $: sphereColorName = mouseDown ? (shiftDown ? 'negative' : 'positive') : 'inactive'
 // $: sphere.material.color= sphereColors[sphereColorName]
 sphere.material.color = sphereColors['positive']
-// $: sphere.material.opacity = spherePositionSet ? .5 : .8
-$: sphere.material.opacity = $optPositionPanel.view_sphere ? (spherePositionSet ? .5 : .8) : 0
+$: sphere.material.opacity = $optPositionPanel.view_sphere ? ($mode == 'setting-sphere' ? .5 : .8) : 0
 $: sphere.scale.set(
     $optPositionPanel.optimize_radius * .5,
     $optPositionPanel.optimize_radius * .5,
     $optPositionPanel.optimize_radius * .5
 )
 
-
-// $: if (spherePositionSet) {
-//     document.body.style.cursor = 'default'
-// } else {
-//     document.body.style.cursor = 'none'
-// }
-
-// $: console.log($optPositionPanel);
-
 ////////////////////////////////////////////////////////////////////////////////
-
-const submitSettings = debounce(() => {
-    const settings = {
-        ...$sculpControls,
-        point: sphere.position.toArray(),
-        optimize_radius: $optPositionPanel.optimize_radius,
-    }
-    console.log('Sending sculp_settings', settings);
-    
-    messageServer("sculp_settings", settings)
-}, 100);
-
-$: if ($sculpControls) {
-    submitSettings()
-}
-
-onMount(() => {
-    loop()
-})
-
+// Event listeners
 function resetClicked() {
     messageServer("initialize", "cat.npy")
 }
@@ -226,38 +113,93 @@ function resetClicked() {
 function onKeyDown(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
     if (e.key.toLowerCase() === "t") {
-        console.log("SCUlPTING!")
+        // console.log("SCUlPTING!")
+        // if (!isSculping){
+        //     isSculping = true;
+        //     messageServer("sculp_mode", {is_sculping: isSculping})
+        // }
         $sculpControls.sculp_enabled = !$sculpControls.sculp_enabled
-    };
-
+    }
 }
 
 function onKeyUp(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
+    // if (e.key.toLowerCase() === "t") {
+    //     console.log("SCUlPTING STOPPED!")
+    //     isSculping = false;
+    //     messageServer("stop_sculp_mode", {is_sculping: isSculping})
+    // };
+
 }
+
 function onMouseMove(event) {
     // calculate mouse position in normalized device coordinates
     // (-1 to +1) for both components
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 }
+
 function onMouseDown() {
-    mouseDown=true
-    if (!spherePositionSet && mouseOverMesh) {
-        spherePositionSet = true
+    mouseDown = true
+    if ($mode == 'setting-sphere' && mouseOverMesh) {
+        $mode = 'default'
+    }    
+    if ($mode == 'default' && mouseOverMesh && $sculpControls.sculp_enabled) {
+        $mode = 'sculpting'
     }
 }
 
-// If the sculpting sphere changes update the setting.
-$: if (spherePositionSet == true && $optPositionPanel.optimize_radius) {
+function onMouseUp() {
+    $mode = 'default'
+}
+
+$: if ($mode == 'sculpting') {
+    controls.enableRotate = false
+    controls.enablePan = false
+    document.body.style.cursor = 'pointer'
+} else {
+    controls.enableRotate = true
+    controls.enablePan = true
+    document.body.style.cursor = 'default'
+}
+
+// If the sculpting sphere changes update the server.
+$: if (
+    $sculpControls || 
+    ($mode == 'default' && $optPositionPanel.optimize_radius)
+) {
     submitSettings()
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Main event loop.
+function loop(): void {
+    requestAnimationFrame(loop)
+    detectMeshIntersection()
+    if ($socketOpen && !camera.position.equals(lastCamera)) {
+        sendNewCamera()
+        lastCamera.copy(camera.position)
+    }
+    if ($mode == 'sculpting' && intersectPoint) {
+        console.log('SCULPTING', {
+            additive: !shiftDown,
+            point: intersectPoint.toArray()
+        })
+        // TODO
+        // messageServer('sculpt_cursor', {
+        // })
+    }
+    sceneUpdate()
+}
+onMount(() => {
+    loop()
+})
 </script>
 
 <svelte:body
     on:mousemove={onMouseMove}
     on:mousedown={onMouseDown}
+    on:mouseup={onMouseUp}
     on:click={() => mouseClicked=true}
     on:mouseup={() => mouseDown=false}
     on:keydown={onKeyDown}

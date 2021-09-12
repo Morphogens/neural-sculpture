@@ -661,6 +661,7 @@ class SDFOptimizer:
         prompt,
         coord,
         weight_range=8,
+        camera_angle_list=None,
     ):
         coord = [int(c) for c in coord]
         x_coord, y_coord, z_coord = coord
@@ -678,14 +679,15 @@ class SDFOptimizer:
                 int(weight_range / 2)):min(res - 1, z_coord +
                                            int(weight_range / 2)), ] = 1
 
-        camera_angle_list = self.get_camera_angle_list(
-            num_cameras=16,
-            mapping_span=2 * math.pi,
-            mapping_offset=math.pi,
-            shuffle_order=False,
-            mapping_type='sdfdiff',
-            cam_scaler=self.config.camera.cam_scaler,
-        )
+        if camera_angle_list is None:
+            camera_angle_list = self.get_camera_angle_list(
+                num_cameras=16,
+                mapping_span=2 * math.pi,
+                mapping_offset=math.pi,
+                shuffle_order=False,
+                mapping_type='sdfdiff',
+                cam_scaler=self.config.camera.cam_scaler,
+            )
 
         for idx, camera_angle in enumerate(camera_angle_list):
             print(f"OPTIMIZING ANGLE {idx}")

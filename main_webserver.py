@@ -51,7 +51,7 @@ sdf_grid_res_list = [64]
 def reset_sdf_optimizer(
     sdf_grid_res_list=[64],
     sdf_dir="./sdf-grids",
-    sdf_filename="skull.npy",
+    sdf_filename="cat.npy",
 ):
     sdf_optimizer = SDFOptimizer(
         config=optim_config,
@@ -100,6 +100,7 @@ class UserSession:
         self.sdf_dir = "./sdf-grids"
         self.sdf_filename = None
         self.sculpting = False
+        self.camera_angle_list = None
         self.sdf_optimizer = reset_sdf_optimizer()
 
     async def run(self):
@@ -209,6 +210,13 @@ class UserSession:
                     optimization_region = data["optimize_radius"] * 2
                     self.optimization_region = optimization_region
 
+            if topic == "camera":
+                if data:
+                    print("CAMERA UPDATED!")
+                    self.camera_angle_list = [torch.tensor(data).cuda() / 10]
+                else:
+                    print("CAMERA WITHOUT DATA")
+
     async def send_loop(self):
         while True:
             model = await async_result.wait()
@@ -237,7 +245,7 @@ class OptimizerWorker:
             sdf_optimizer = us.sdf_optimizer
 
             if us.sdf_filename:
-                print(f"Resetting to file {us.sdf_filename}")
+                print(f"Resetting to file {us.sdf_filename} in {us.sdf_dir}")
 
                 sdf_optimizer.sdf_file_path = os.path.join(
                     us.sdf_dir, us.sdf_filename)
@@ -252,13 +260,17 @@ class OptimizerWorker:
                 )
 
             if us.sculpting:
-                print(f"running optimizer with prompt {us.prompt}")
                 print(f"running optimizer with coord {us.coord}")
+                print(f"running optimizer with prompt {us.prompt}")
+                print(
+                    f"running optimizer with camera angle {us.camera_angle_list}"
+                )
 
                 sdf_optimizer.optimize_coord(
                     coord=us.coord,
                     prompt=us.prompt,
                     weight_range=us.optimization_region,
+                    camera_angle_list=us.camera_angle_list,
                 )
 
             # HACK: Test out all code

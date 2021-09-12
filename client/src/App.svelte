@@ -22,6 +22,8 @@ const sculpControls = knobby.panel({
         step: 4
     },
     reset_mesh: () => {messageServer("initialize", "cat.npy")},
+    substract_sdf: () => {messageServer("substract_sdf", "")},
+    add_sdf: () => {messageServer("add_sdf", "")},
 });
 
 let spherePositionSet = false
@@ -36,7 +38,7 @@ const optPositionPanel = knobby.panel({
     optimize_radius: {
         // $label: 'Optimize Radius',
         value: 8,
-        min: 2,
+        min: 1,
         max: 32,
         step: 1
     },
@@ -118,6 +120,7 @@ function messageServer(message:string, data:any) {
 let lastMesh = null
 mesh.subscribe($mesh => {
     if (lastMesh == null){
+        console.log("INITIALIZING")
         messageServer("initialize", "cat.npy")
     }
     if (lastMesh) {
@@ -217,18 +220,13 @@ onMount(() => {
 })
 
 function resetClicked() {
-    messageServer("initialize", "12140_Skull_v3_L2.npy")
+    messageServer("initialize", "cat.npy")
 }
 
-let isSculping = false;
 function onKeyDown(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
     if (e.key.toLowerCase() === "t") {
         console.log("SCUlPTING!")
-        // if (!isSculping){
-        //     isSculping = true;
-        //     messageServer("sculp_mode", {is_sculping: isSculping})
-        // }
         $sculpControls.sculp_enabled = !$sculpControls.sculp_enabled
     };
 
@@ -236,13 +234,6 @@ function onKeyDown(e: KeyboardEvent) {
 
 function onKeyUp(e: KeyboardEvent) {
     shiftDown = e.shiftKey;
-    // if (e.key.toLowerCase() === "t") {
-    //     console.log("SCUlPTING STOPPED!")
-        
-    //     isSculping = false;
-    //     messageServer("stop_sculp_mode", {is_sculping: isSculping})
-    // };
-
 }
 function onMouseMove(event) {
     // calculate mouse position in normalized device coordinates
